@@ -1,4 +1,10 @@
-{% extends 'base.html' %}
+"""
+Run this script from project root:
+python fix_dashboard.py
+"""
+import os
+
+content = '''{% extends 'base.html' %}
 {% block title %}My Dashboard{% endblock %}
 {% block content %}
 <section class="py-5">
@@ -103,3 +109,18 @@
 @media(max-width:576px){.dash-stats-row{grid-template-columns:repeat(2,1fr);}}
 </style>
 {% endblock %}
+'''
+
+# Write to both locations
+paths = [
+    'templates/dashboard.html',
+    'core/templates/dashboard.html',
+]
+
+for path in paths:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"✅ Written: {path} ({len(content.splitlines())} lines)")
+
+print("\nDone! Now run: python manage.py runserver")
