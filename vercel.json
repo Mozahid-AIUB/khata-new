@@ -3,17 +3,18 @@
     "builds": [
         {
             "src": "api/index.py",
-            "use": "@vercel/python",
-            "config": {
-                "maxLambdaSize": "50mb"
-            }
+            "use": "@vercel/python"
         }
     ],
+    "functions": {
+        "api/index.py": {
+            "runtime": "python3.11"
+        }
+    },
     "routes": [
         {
             "src": "/(.*)",
             "dest": "api/index.py"
         }
-    ],
-    "buildCommand": "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    ]
 }
