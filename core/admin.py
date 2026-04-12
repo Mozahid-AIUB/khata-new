@@ -115,7 +115,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     def stock_display(self, obj):
         if obj.stock == 0:
-            return format_html('<span style="color:#ff006e;font-weight:700">Out of Stock</span>')
+           return format_html('<span style="color:{};font-weight:700">{}</span>', '#ff006e', 'Out of Stock')
         elif obj.stock <= 5:
             return format_html('<span style="color:#f59e0b;font-weight:700">⚠️ {}</span>', obj.stock)
         return format_html('<span style="color:#00ff87;font-weight:700">{}</span>', obj.stock)

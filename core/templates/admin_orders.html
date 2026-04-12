@@ -11,15 +11,15 @@
                 <div class="ao-stat-label">Filtered Orders</div>
             </div>
             <div class="ao-stat">
-                <div class="ao-stat-num" style="color:#f59e0b;">{{ pending_count }}</div>
+                <div class="ao-stat-num" style="color:#f59e0b;">{{ stats.pending_count }}</div>
                 <div class="ao-stat-label">Pending</div>
             </div>
             <div class="ao-stat">
-                <div class="ao-stat-num" style="color:#00e5b0;">{{ today_orders }}</div>
+                <div class="ao-stat-num" style="color:#00e5b0;">{{ stats.today_count }}</div>
                 <div class="ao-stat-label">Today</div>
             </div>
             <div class="ao-stat">
-                <div class="ao-stat-num" style="color:#5b7fff;">৳{{ total_revenue|floatformat:0 }}</div>
+                <div class="ao-stat-num" style="color:#5b7fff;">৳{{ stats.total_revenue|floatformat:0 }}</div>
                 <div class="ao-stat-label">Total Revenue</div>
             </div>
         </div>
@@ -61,7 +61,7 @@
             <div class="ao-address">📍 {{ order.address }}</div>
 
             <div class="ao-card-footer">
-                <div class="ao-total">৳{{ order.final_amount|floatformat:0 }}
+                <div class="ao-total">৳{{ order.total_amount|floatformat:0 }}
                     {% if order.discount %}<span class="ao-discount">−৳{{ order.discount|floatformat:0 }}
                         discount</span>{% endif %}
                 </div>

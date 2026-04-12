@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-from django.db.models import Avg
+from django.db.models import Avg, Sum
 
 
 # ─────────────────────────────────────────────
@@ -159,6 +159,69 @@ class Product(models.Model):
     def increment_views(self):
         Product.objects.filter(pk=self.pk).update(view_count=models.F('view_count') + 1)
 
+    def save(self, *args, **kwargs):
+        """Auto-compress product image on upload using Pillow."""
+        # Get old image path before save (so we don't recompress on every field update)
+        old_image_name = None
+        if self.pk:
+            try:
+                old_image_name = Product.objects.get(pk=self.pk).image.name
+            except Product.DoesNotExist:
+                pass
+
+        super().save(*args, **kwargs)
+
+        # Only compress if this is a new image (not re-saving same file)
+        if self.image and self.image.name != old_image_name:
+            self._compress_image(self.image)
+
+    @staticmethod
+    def _compress_image(image_field, max_size=(800, 800), quality=82):
+        """
+        Compress & resize image in-place.
+        - Converts RGBA/P → RGB (JPEG compat)
+        - Resizes to max 800×800 (keeps aspect ratio)
+        - Saves as JPEG at quality=82 (~70% smaller)
+        """
+        try:
+            from PIL import Image as PilImage
+            import io, os
+            from django.core.files.base import ContentFile
+
+            img_path = image_field.path
+            if not os.path.exists(img_path):
+                return
+
+            img = PilImage.open(img_path)
+            # Convert palette/RGBA to RGB for JPEG
+            if img.mode in ('RGBA', 'P', 'LA'):
+                bg = PilImage.new('RGB', img.size, (255, 255, 255))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                bg.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                img = bg
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # Resize (thumbnail keeps aspect ratio, never upscales)
+            img.thumbnail(max_size, PilImage.LANCZOS)
+
+            # Save back as JPEG
+            out = io.BytesIO()
+            img.save(out, format='JPEG', quality=quality, optimize=True)
+            out.seek(0)
+
+            # Replace file (keep same name but .jpg extension)
+            base = os.path.splitext(os.path.basename(img_path))[0]
+            new_name = f"{base}.jpg"
+
+            # Write compressed bytes directly to storage path
+            with open(img_path, 'wb') as f:
+                f.write(out.read())
+
+        except Exception:
+            pass  # Never crash on image compression failure
+
 
 # ─────────────────────────────────────────────
 #  PRODUCT IMAGES (Multiple)
@@ -231,11 +294,24 @@ class Order(models.Model):
     ]
 
     PAYMENT_METHODS = [
-        ('bkash',  'bKash'),
-        ('nagad',  'Nagad'),
-        ('cash',   'Cash on Delivery'),
-        ('other',  'Other'),
+        ('bkash',   'bKash'),
+        ('nagad',   'Nagad'),
+        ('cash',    'Cash on Delivery'),
+        ('sslcommerz', 'Card / Online (SSLCommerz)'),
+        ('other',   'Other'),
     ]
+
+    PAYMENT_STATUS = [
+        ('unpaid',    'Unpaid'),
+        ('paid',      'Paid'),
+        ('failed',    'Failed'),
+        ('cancelled', 'Cancelled'),
+        ('refunded',  'Refunded'),
+    ]
+
+    # ── Human-readable order ID (e.g. PK-20260001) ──
+    order_id       = models.CharField(max_length=30, unique=True, blank=True,
+                     help_text='Auto-generated: PK-YYYYXXXX')
 
     user           = models.ForeignKey(User, on_delete=models.SET_NULL,
                      null=True, blank=True, related_name='orders')
@@ -246,23 +322,62 @@ class Order(models.Model):
     discount       = models.DecimalField(max_digits=8, decimal_places=2, default=0)
     delivery_charge = models.DecimalField(max_digits=6, decimal_places=2, default=110)
     coupon         = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True)
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHODS,
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS,
                      default='bkash', blank=True)
-    payment_ref    = models.CharField(max_length=100, blank=True,
-                     help_text='bKash/Nagad transaction ID')
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS,
+                     default='unpaid')
+    payment_ref    = models.CharField(max_length=200, blank=True,
+                     help_text='bKash/Nagad TrxID or SSLCommerz val_id')
+    ssl_transaction_id = models.CharField(max_length=100, blank=True,
+                     help_text='SSLCommerz bank_tran_id')
     status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     tracking_note  = models.TextField(blank=True)
+    estimated_delivery_date = models.DateField(
+        null=True, blank=True,
+        help_text='Expected delivery date (set manually by admin or auto on confirmation)'
+    )
     created_at     = models.DateTimeField(auto_now_add=True)
     updated_at     = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
 
+    def save(self, *args, **kwargs):
+        # Auto-set estimated_delivery_date on first save (3 business days from now)
+        if not self.pk and not self.estimated_delivery_date:
+            from datetime import date, timedelta
+            d = date.today()
+            days_added = 0
+            while days_added < 3:
+                d += timedelta(days=1)
+                if d.weekday() < 5:  # Mon–Fri only
+                    days_added += 1
+            self.estimated_delivery_date = d
+
+        # Auto-generate readable order_id on first save
+        if not self.order_id:
+            super().save(*args, **kwargs)
+            year = self.created_at.strftime('%Y')
+            self.order_id = f"PK-{year}{self.id:04d}"
+            Order.objects.filter(pk=self.pk).update(order_id=self.order_id)
+        else:
+            super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Order #{self.id} — {self.customer_name}"
+        return f"Order {self.order_id or self.id} — {self.customer_name}"
 
     @property
     def grand_total(self):
+        return float(self.total_amount)
+
+    @property
+    def total_price(self):
+        """Alias used in templates/chatbot."""
+        return float(self.total_amount)
+
+    @property
+    def final_amount(self):
+        """Alias for total_amount (used in admin order templates)."""
         return float(self.total_amount)
 
     @property
@@ -272,6 +387,10 @@ class Order(models.Model):
     @property
     def is_cancellable(self):
         return self.status in ['pending', 'confirmed']
+
+    @property
+    def is_paid(self):
+        return self.payment_status == 'paid'
 
 
 # ─────────────────────────────────────────────
@@ -392,3 +511,203 @@ class FlashSale(models.Model):
     def seconds_remaining(self):
         delta = self.ends_at - timezone.now()
         return max(0, int(delta.total_seconds()))
+
+
+# ═══════════════════════════════════════════════
+#  🎮 GAMIFICATION SYSTEM
+# ═══════════════════════════════════════════════
+
+class UserProfile(models.Model):
+    """
+    Extended user profile — XP, level, referral code, total stats.
+    Auto-created via post_save signal on User creation.
+    """
+    LEVEL_THRESHOLDS = [
+        (0,    'Newcomer',   '🌱'),
+        (100,  'Explorer',   '⚡'),
+        (300,  'Scholar',    '📚'),
+        (600,  'Achiever',   '🏆'),
+        (1000, 'Champion',   '🔥'),
+        (2000, 'Legend',     '👑'),
+    ]
+
+    user          = models.OneToOneField(User, on_delete=models.CASCADE,
+                    related_name='profile')
+    xp            = models.PositiveIntegerField(default=0, help_text='Experience points')
+    referral_code = models.CharField(max_length=12, unique=True, blank=True,
+                    help_text='User\'s unique referral code')
+    referred_by   = models.ForeignKey('self', on_delete=models.SET_NULL,
+                    null=True, blank=True, related_name='referrals')
+    total_orders  = models.PositiveIntegerField(default=0)
+    total_spent   = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    scratch_cards = models.PositiveIntegerField(default=0,
+                    help_text='Unscratched cards available')
+    created_at    = models.DateTimeField(auto_now_add=True)
+    updated_at    = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.referral_code:
+            import random, string
+            while True:
+                code = 'PK' + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                if not UserProfile.objects.filter(referral_code=code).exists():
+                    self.referral_code = code
+                    break
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.username} — {self.xp} XP"
+
+    @property
+    def level_info(self):
+        """Returns (level_name, level_icon, xp_for_next, progress_pct)."""
+        current_thresh = (0, 'Newcomer', '🌱')
+        next_thresh    = None
+        for i, (xp_req, name, icon) in enumerate(self.LEVEL_THRESHOLDS):
+            if self.xp >= xp_req:
+                current_thresh = (xp_req, name, icon)
+                if i + 1 < len(self.LEVEL_THRESHOLDS):
+                    next_thresh = self.LEVEL_THRESHOLDS[i + 1]
+        if next_thresh:
+            xp_in_level    = self.xp - current_thresh[0]
+            xp_needed      = next_thresh[0] - current_thresh[0]
+            progress_pct   = min(100, int(xp_in_level / xp_needed * 100))
+            xp_to_next     = next_thresh[0] - self.xp
+        else:
+            progress_pct   = 100
+            xp_to_next     = 0
+        return {
+            'name':         current_thresh[1],
+            'icon':         current_thresh[2],
+            'progress_pct': progress_pct,
+            'xp_to_next':   xp_to_next,
+            'next_level':   next_thresh[1] if next_thresh else None,
+        }
+
+    def add_xp(self, amount, reason=''):
+        """Add XP and create an XP log entry."""
+        self.xp += amount
+        self.save(update_fields=['xp', 'updated_at'])
+        XPLog.objects.create(profile=self, amount=amount, reason=reason)
+        # Check badges after each XP gain
+        self._award_badges()
+
+    def _award_badges(self):
+        """Auto-award badges based on current stats."""
+        BADGE_RULES = [
+            ('first_order',   lambda p: p.total_orders >= 1),
+            ('five_orders',   lambda p: p.total_orders >= 5),
+            ('ten_orders',    lambda p: p.total_orders >= 10),
+            ('big_spender',   lambda p: float(p.total_spent) >= 2000),
+            ('referrer',      lambda p: p.referrals.count() >= 1),
+            ('super_referrer',lambda p: p.referrals.count() >= 5),
+            ('explorer',      lambda p: p.xp >= 100),
+            ('champion',      lambda p: p.xp >= 1000),
+        ]
+        for slug, check in BADGE_RULES:
+            if check(self):
+                Badge.objects.get_or_create(profile=self, badge_slug=slug)
+
+
+class XPLog(models.Model):
+    """Log every XP transaction."""
+    profile    = models.ForeignKey(UserProfile, on_delete=models.CASCADE,
+                 related_name='xp_logs')
+    amount     = models.IntegerField()
+    reason     = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"+{self.amount} XP — {self.reason}"
+
+
+class Badge(models.Model):
+    """Earned badges per user."""
+    BADGE_CATALOG = {
+        'first_order':    ('🛒', 'First Order',    'প্রথম অর্ডার করেছো!'),
+        'five_orders':    ('📦', '5 Orders',        '৫টি অর্ডার সম্পন্ন'),
+        'ten_orders':     ('🏅', '10 Orders',       '১০টি অর্ডার সম্পন্ন'),
+        'big_spender':    ('💎', 'Big Spender',     '৳২০০০+ খরচ করেছো'),
+        'referrer':       ('🤝', 'Referrer',        'বন্ধুকে রেফার করেছো'),
+        'super_referrer': ('🌟', 'Super Referrer',  '৫+ বন্ধুকে রেফার করেছো'),
+        'explorer':       ('⚡', 'Explorer',        '১০০ XP অর্জন করেছো'),
+        'champion':       ('🔥', 'Champion',        '১০০০ XP অর্জন করেছো'),
+    }
+
+    profile    = models.ForeignKey(UserProfile, on_delete=models.CASCADE,
+                 related_name='badges')
+    badge_slug = models.CharField(max_length=30)
+    earned_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('profile', 'badge_slug')
+        ordering = ['-earned_at']
+
+    def __str__(self):
+        return f"{self.profile.user.username} — {self.badge_slug}"
+
+    @property
+    def info(self):
+        return self.BADGE_CATALOG.get(self.badge_slug, ('🏷️', self.badge_slug, ''))
+
+
+class ScratchCard(models.Model):
+    """One-time scratch card rewards after an order."""
+    STATUS_CHOICES = [
+        ('pending',   'Pending'),
+        ('scratched', 'Scratched'),
+        ('expired',   'Expired'),
+    ]
+    REWARD_TYPES = [
+        ('discount_pct',  'Discount %'),
+        ('discount_flat', 'Discount Flat'),
+        ('free_delivery', 'Free Delivery'),
+        ('xp_bonus',      'XP Bonus'),
+    ]
+
+    profile      = models.ForeignKey(UserProfile, on_delete=models.CASCADE,
+                   related_name='scratch_card_set')
+    order        = models.ForeignKey('Order', on_delete=models.CASCADE,
+                   related_name='scratch_cards', null=True, blank=True)
+    status       = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    reward_type  = models.CharField(max_length=20, choices=REWARD_TYPES, default='discount_pct')
+    reward_value = models.PositiveIntegerField(default=10,
+                   help_text='Value: 10 = 10% or ৳10 or 50XP')
+    coupon_code  = models.CharField(max_length=20, blank=True,
+                   help_text='Auto-generated coupon code after scratch')
+    expires_at   = models.DateTimeField()
+    created_at   = models.DateTimeField(auto_now_add=True)
+    scratched_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"ScratchCard #{self.id} — {self.profile.user.username} ({self.status})"
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    def scratch(self):
+        """Mark as scratched and create coupon if applicable."""
+        if self.status != 'pending' or self.is_expired:
+            return None
+        self.status = 'scratched'
+        self.scratched_at = timezone.now()
+        # Auto-create a coupon code
+        if self.reward_type in ('discount_pct', 'discount_flat'):
+            import random, string
+            code = 'SCRATCH' + ''.join(random.choices(string.digits, k=4))
+            dtype = 'percent' if self.reward_type == 'discount_pct' else 'flat'
+            Coupon.objects.create(
+                code=code,
+                discount_type=dtype,
+                discount_value=self.reward_value,
+                min_order=0,
+                max_uses=1,
+                expires_at=timezone.now() + timezone.timedelta(days=7),
+            )
+            self.coupon_code = code
+        self.save()
+        return self.coupon_code

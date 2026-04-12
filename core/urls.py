@@ -19,6 +19,7 @@ urlpatterns = [
     # ── Checkout & Orders ────────────────────────────────
     path('checkout/', views.checkout, name='checkout'),
     path('order/<int:order_id>/tracking/', views.order_tracking, name='order_tracking'),
+    path('order/<int:order_id>/invoice/', views.order_invoice_pdf, name='order_invoice_pdf'),
 
     # ── Auth ──────────────────────────────────────────────
     path('register/', views.register_view, name='register'),
@@ -35,11 +36,26 @@ urlpatterns = [
     path('manage/delete/<int:product_id>/', views.delete_product, name='delete_product'),
     path('manage/orders/', views.admin_orders, name='admin_orders'),
     path('manage/orders/<int:order_id>/status/', views.update_order_status, name='update_order_status'),
+    path('manage/orders/<int:order_id>/status/ajax/', views.update_order_status_ajax, name='update_order_status_ajax'),
     path('manage/reviews/', views.admin_reviews, name='admin_reviews'),
     path('manage/reviews/<int:review_id>/approve/', views.approve_review, name='approve_review'),
     path('manage/coupons/', views.manage_coupons, name='manage_coupons'),
     path('manage/coupons/add/', views.add_coupon, name='add_coupon'),
     path('manage/coupons/delete/<int:coupon_id>/', views.delete_coupon, name='delete_coupon'),
+
+    # ── Admin Dashboard 2.0 ───────────────────────────────
+    path('manage/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('manage/export/csv/', views.export_orders_csv, name='export_orders_csv'),
+
+    # ── SSLCommerz Payment ────────────────────────────────
+    path('payment/initiate/', views.ssl_initiate,  name='ssl_initiate'),
+    path('payment/success/',  views.ssl_success,   name='ssl_success'),
+    path('payment/fail/',     views.ssl_fail,       name='ssl_fail'),
+    path('payment/cancel/',   views.ssl_cancel,     name='ssl_cancel'),
+    path('payment/ipn/',      views.ssl_ipn,        name='ssl_ipn'),
+
+    # ── Gamification ─────────────────────────────────────
+    path('scratch/<int:card_id>/', views.scratch_card, name='scratch_card'),
 
     # ── AI Chat ───────────────────────────────────────────
     path('ai-chat/', views.ai_chat, name='ai_chat'),

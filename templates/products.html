@@ -1,88 +1,712 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Products - SSC & HSC Practical Khata{% endblock %}
-
-{% block content %}
-<section class="py-5">
-    <div class="container">
-        <div class="row">
-            <!-- Sidebar Categories -->
-            <div class="col-md-3">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-filter"></i> Categories</h5>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        <a href="{% url 'products' %}"
-                            class="list-group-item list-group-item-action {% if not current_category %}active{% endif %}">
-                            All Products
-                        </a>
-                        {% for category in categories %}
-                        <a href="{% url 'products_by_category' category.slug %}"
-                            class="list-group-item list-group-item-action {% if current_category == category %}active{% endif %}">
-                            {{ category.name }}
-                        </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Products Grid -->
-            <div class="col-md-9">
-                <h2 class="mb-4">
-                    {% if current_category %}
-                    {{ current_category.name }} Products
-                    {% else %}
-                    All Products
-                    {% endif %}
-                </h2>
-
-                <div class="row g-4">
-                    {% for product in products %}
-                    <div class="col-md-4">
-                        <div class="card product-card shadow-sm h-100">
-                            <a href="{% url 'product_detail' product.slug %}">
-                                {% if product.image %}
-                                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}"
-                                    style="height: 200px; object-fit: cover;">
-                                {% else %}
-                                <img src="https://via.placeholder.com/300x200?text={{ product.name }}"
-                                    class="card-img-top" alt="{{ product.name }}">
-                                {% endif %}
-                            </a>
-                            <div class="card-body d-flex flex-column">
-                                <span class="badge bg-primary mb-2 align-self-start">{{ product.level }}</span>
-                                <h5 class="card-title">
-                                    <a href="{% url 'product_detail' product.slug %}"
-                                        class="text-decoration-none text-dark">
-                                        {{ product.name }}
-                                    </a>
-                                </h5>
-                                <p class="card-text text-muted small">{{ product.description|truncatewords:15 }}</p>
-                                <div class="mt-auto">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h4 class="text-success mb-0">৳{{ product.price }}</h4>
-                                        <button class="btn btn-primary btn-sm add-to-cart-btn"
-                                            data-product-id="{{ product.id }}" title="Add to cart">
-                                            <i class="fas fa-cart-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% empty %}
-                    <div class="col-12 text-center">
-                        <p class="lead">No products found in this category.</p>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+{% block title %}
+  {% if current_category %}{{ current_category.icon }} {{ current_category.name }}{% else %}সব Products{% endif %} — SSC & HSC Practical Khata
+{% endblock %}
+{% block meta_description %}
+  {% if current_category %}{{ current_category.name }} practical khata{% else %}SSC ও HSC-এর জন্য সেরা practical khata{% endif %} — বাংলাদেশে সবচেয়ে কম দামে।
 {% endblock %}
 
-{% block extra_css %}{% endblock %}
+{% block content %}
 
-{% block extra_js %}{% endblock %}
+<!-- ══════════════════════════════════════════════════
+     🛍️ PRODUCTS PAGE — Premium v2 with UI Components
+══════════════════════════════════════════════════ -->
+
+<div class="prods-wrap">
+<div class="container py-4">
+
+  <!-- ─── Page Hero ─── -->
+  <div class="prods-hero mb-4">
+    <div>
+      <h1 class="prods-title">
+        {% if current_category %}{{ current_category.icon }} {{ current_category.name }}
+        {% else %}📚 সব Practical Khata{% endif %}
+      </h1>
+      <p class="prods-sub">
+        <span id="prodCount" class="prods-count">{{ total_count }}</span> টি product পাওয়া গেছে
+        {% if level_filter %} · <span class="prods-filter-tag">{{ level_filter }}</span>{% endif %}
+      </p>
+    </div>
+    <!-- Breadcrumb -->
+    <nav class="prods-breadcrumb">
+      <a href="{% url 'home' %}">🏠 Home</a>
+      <span>›</span>
+      {% if current_category %}
+      <a href="{% url 'products' %}">Products</a>
+      <span>›</span>
+      <span class="bc-current">{{ current_category.name }}</span>
+      {% else %}
+      <span class="bc-current">Products</span>
+      {% endif %}
+    </nav>
+  </div>
+
+  <div class="prods-layout">
+
+    <!-- ═══════ SIDEBAR ═══════ -->
+    <aside class="prods-sidebar">
+
+      <!-- Search box -->
+      <form method="GET" action="{% url 'search_products' %}" class="prods-search-box mb-3">
+        <input type="text" name="q" placeholder="🔍 product খোঁজো..." class="prods-search-input">
+      </form>
+
+      <!-- Categories -->
+      <div class="prods-filter-card mb-3">
+        <div class="prods-filter-head">📂 Categories</div>
+        <a href="{% url 'products' %}" class="prods-cat-link {% if not current_category and not level_filter %}prods-cat-link--active{% endif %}">
+          <span>সব Products</span>
+          <span class="prods-cat-count">{{ total_count }}</span>
+        </a>
+        {% for cat in categories %}
+        <a href="{% url 'products_by_category' cat.slug %}" class="prods-cat-link {% if current_category == cat %}prods-cat-link--active{% endif %}">
+          <span>{{ cat.icon }} {{ cat.name }}</span>
+          <span class="prods-cat-count">{{ cat.product_count }}</span>
+        </a>
+        {% endfor %}
+      </div>
+
+      <!-- Level Filter -->
+      <div class="prods-filter-card mb-3">
+        <div class="prods-filter-head">🎓 Level</div>
+        <div class="prods-level-btns">
+          <a href="{% if current_category %}{% url 'products_by_category' current_category.slug %}{% else %}{% url 'products' %}{% endif %}"
+             class="prods-lvl-btn {% if not level_filter %}prods-lvl-btn--active{% endif %}">All</a>
+          <a href="?level=SSC{% if sort %}&sort={{ sort }}{% endif %}"
+             class="prods-lvl-btn {% if level_filter == 'SSC' %}prods-lvl-btn--active{% endif %}">SSC</a>
+          <a href="?level=HSC{% if sort %}&sort={{ sort }}{% endif %}"
+             class="prods-lvl-btn {% if level_filter == 'HSC' %}prods-lvl-btn--active{% endif %}">HSC</a>
+        </div>
+      </div>
+
+      <!-- Sort -->
+      <div class="prods-filter-card">
+        <div class="prods-filter-head">↕️ Sort By</div>
+        {% for val, label, icon in sort_opts %}
+        <a href="?sort={{ val }}{% if level_filter %}&level={{ level_filter }}{% endif %}"
+           class="prods-sort-link {% if sort == val %}prods-sort-link--active{% endif %}">
+          <span>{{ icon }} {{ label }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </aside>
+
+    <!-- ═══════ PRODUCT GRID ═══════ -->
+    <div class="prods-main">
+
+      <!-- Sort bar (mobile) -->
+      <div class="prods-topbar mb-3">
+        <span class="prods-result-label">{{ total_count }} Results</span>
+        <div class="prods-sort-inline">
+          <span class="prods-sort-label">Sort:</span>
+          {% for val, label, icon in sort_opts %}
+          <a href="?sort={{ val }}{% if level_filter %}&level={{ level_filter }}{% endif %}{% if current_category %}&cat={{ current_category.slug }}{% endif %}"
+             class="prods-sort-chip {% if sort == val %}prods-sort-chip--active{% endif %}">{{ label }}</a>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- SkeletonLoader (shown briefly via JS on filter change) -->
+      <div id="skeletonGrid" class="prods-grid" style="display:none;">
+        {% for i in "123456" %}
+        <div class="skeleton-card">
+          <div class="sk-img skel-anim"></div>
+          <div class="sk-badge skel-anim"></div>
+          <div class="sk-title skel-anim"></div>
+          <div class="sk-text skel-anim"></div>
+          <div class="sk-price skel-anim"></div>
+          <div class="sk-btn skel-anim"></div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Real Grid -->
+      <div class="prods-grid" id="realGrid">
+        {% for product in products %}
+        <div class="glow-card" data-product-id="{{ product.id }}">
+
+          <!-- HoloBadge -->
+          <div class="holo-badges">
+            {% if product.is_on_sale %}
+            <span class="holo-badge holo-badge--sale">🔥 {{ product.discount_percent }}% OFF</span>
+            {% elif product.featured %}
+            <span class="holo-badge holo-badge--hot">⚡ HOT</span>
+            {% endif %}
+            {% if product.created_at|timesince|slice:":2" == "0 " or product.id > 0 %}{% endif %}
+            {% if product.is_low_stock %}
+            <span class="holo-badge holo-badge--low">⚠️ Low Stock</span>
+            {% endif %}
+          </div>
+
+          <!-- Image -->
+          <a href="{% url 'product_detail' product.slug %}" class="glow-card-img-wrap">
+            {% if product.image %}
+            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="glow-card-img" loading="lazy">
+            {% else %}
+            <div class="glow-card-img-placeholder">📚</div>
+            {% endif %}
+            <!-- Overlay on hover -->
+            <div class="glow-card-overlay">
+              <span class="glow-card-overlay-text">👁️ Quick View</span>
+            </div>
+          </a>
+
+          <!-- Body -->
+          <div class="glow-card-body">
+            <!-- Level badge + Category -->
+            <div class="glow-card-meta">
+              <span class="status-pill status-pill--{{ product.level|lower }}">{{ product.level }}</span>
+              {% if product.category %}
+              <span class="glow-card-cat">{{ product.category.icon }} {{ product.category.name }}</span>
+              {% endif %}
+            </div>
+
+            <!-- Title -->
+            <a href="{% url 'product_detail' product.slug %}" class="glow-card-title">{{ product.name }}</a>
+
+            <!-- Description -->
+            <p class="glow-card-desc">{{ product.description|truncatewords:12 }}</p>
+
+            <!-- Price row -->
+            <div class="glow-card-price-row">
+              <div class="glow-card-price-wrap">
+                <span class="glow-card-price">৳{{ product.current_price|floatformat:0 }}</span>
+                {% if product.is_on_sale %}
+                <span class="glow-card-original">৳{{ product.price|floatformat:0 }}</span>
+                {% endif %}
+              </div>
+              <!-- Star rating (read-only mini) -->
+              <div class="mini-stars" title="{{ product.average_rating }}/5">
+                {% with product.average_rating as r %}
+                {% for i in "12345" %}
+                <span class="mini-star {% if forloop.counter <= r %}mini-star--on{% endif %}">★</span>
+                {% endfor %}
+                {% endwith %}
+              </div>
+            </div>
+
+            <!-- Stock bar -->
+            {% if product.stock <= 10 %}
+            <div class="glow-card-stock-wrap">
+              <div class="glow-card-stock-bar">
+                <div class="glow-card-stock-fill" style="width:{{ product.stock|add:0 }}0%"></div>
+              </div>
+              <span class="glow-card-stock-text">মাত্র {{ product.stock }}টি বাকি!</span>
+            </div>
+            {% endif %}
+
+            <!-- Add to Cart -->
+            <button class="glow-card-btn add-to-cart-btn"
+                    data-product-id="{{ product.id }}"
+                    data-product-name="{{ product.name }}"
+                    data-product-price="{{ product.current_price }}">
+              <span class="glow-card-btn-icon">🛒</span>
+              <span class="glow-card-btn-text">কার্টে যোগ করো</span>
+              <span class="glow-card-btn-added" style="display:none;">✓ Added!</span>
+            </button>
+          </div>
+
+          <!-- Glow effect element -->
+          <div class="glow-card-glow"></div>
+        </div>
+        {% empty %}
+        <div class="prods-empty">
+          <div class="prods-empty-icon">🔍</div>
+          <h3>কোনো product পাওয়া যায়নি</h3>
+          <p>অন্য category বা filter চেষ্টা করুন।</p>
+          <a href="{% url 'products' %}" class="prods-empty-btn">সব Products দেখুন</a>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if products.has_other_pages %}
+      <div class="prods-pagination">
+        {% if products.has_previous %}
+        <a href="?page={{ products.previous_page_number }}{% if sort %}&sort={{ sort }}{% endif %}{% if level_filter %}&level={{ level_filter }}{% endif %}"
+           class="prods-page-btn">← আগের</a>
+        {% endif %}
+
+        {% for num in products.paginator.page_range %}
+          {% if products.number == num %}
+          <span class="prods-page-num prods-page-num--active">{{ num }}</span>
+          {% elif num > products.number|add:"-3" and num < products.number|add:"3" %}
+          <a href="?page={{ num }}{% if sort %}&sort={{ sort }}{% endif %}{% if level_filter %}&level={{ level_filter }}{% endif %}"
+             class="prods-page-num">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if products.has_next %}
+        <a href="?page={{ products.next_page_number }}{% if sort %}&sort={{ sort }}{% endif %}{% if level_filter %}&level={{ level_filter }}{% endif %}"
+           class="prods-page-btn">পরের →</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div><!-- /prods-main -->
+  </div><!-- /prods-layout -->
+</div><!-- /container -->
+</div><!-- /prods-wrap -->
+
+<!-- ══════════════════════════════════════════════════
+     STYLES — GlowCard, HoloBadge, SkeletonLoader, StatusPill
+══════════════════════════════════════════════════ -->
+<style>
+/* ─── Layout ────────────────────────────────────── */
+.prods-wrap { background: var(--dark-bg, #0a0e1a); min-height: 100vh; }
+
+.prods-hero {
+  display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 12px;
+}
+.prods-title {
+  font-size: 1.5rem !important; font-weight: 900 !important; color: #e8ecf4; margin: 0;
+}
+.prods-sub { font-size: 0.82rem !important; color: #6b7a99; margin: 4px 0 0; }
+.prods-count { color: #5b7fff; font-weight: 800; }
+.prods-filter-tag {
+  background: rgba(91,127,255,0.15); color: #8ba4ff;
+  font-size: 0.72rem; padding: 2px 8px; border-radius: 10px;
+}
+.prods-breadcrumb {
+  display: flex; gap: 6px; align-items: center; font-size: 0.78rem; color: #6b7a99;
+}
+.prods-breadcrumb a { color: #5b7fff; text-decoration: none; }
+.prods-breadcrumb a:hover { color: #8ba4ff; }
+.bc-current { color: #e8ecf4; }
+
+.prods-layout {
+  display: grid; grid-template-columns: 240px 1fr; gap: 24px; align-items: start;
+}
+@media (max-width: 768px) { .prods-layout { grid-template-columns: 1fr; } }
+
+/* ─── Sidebar ───────────────────────────────────── */
+.prods-sidebar { position: sticky; top: 80px; }
+@media (max-width: 768px) { .prods-sidebar { position: static; } }
+
+.prods-search-box { display: flex; }
+.prods-search-input {
+  width: 100%; background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+  color: #e8ecf4; font-size: 0.82rem; padding: 9px 14px;
+  transition: border-color 0.2s;
+}
+.prods-search-input:focus { outline: none; border-color: #5b7fff; }
+
+.prods-filter-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 14px;
+}
+.prods-filter-head {
+  font-size: 0.78rem !important; font-weight: 700; color: #8ba4ff;
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;
+}
+.prods-cat-link {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 10px; border-radius: 8px; text-decoration: none;
+  color: #9ba8c4; font-size: 0.82rem; transition: all 0.15s;
+}
+.prods-cat-link:hover { background: rgba(91,127,255,0.1); color: #e8ecf4; }
+.prods-cat-link--active { background: rgba(91,127,255,0.15); color: #8ba4ff; font-weight: 700; }
+.prods-cat-count {
+  font-size: 0.7rem; background: rgba(255,255,255,0.07);
+  padding: 1px 7px; border-radius: 10px; color: #6b7a99;
+}
+
+.prods-level-btns { display: flex; gap: 6px; }
+.prods-lvl-btn {
+  flex: 1; text-align: center; padding: 6px 4px;
+  border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+  color: #6b7a99; font-size: 0.8rem; text-decoration: none; transition: all 0.15s;
+}
+.prods-lvl-btn:hover { border-color: #5b7fff; color: #8ba4ff; }
+.prods-lvl-btn--active { background: rgba(91,127,255,0.15); border-color: #5b7fff; color: #8ba4ff; font-weight: 700; }
+
+.prods-sort-link {
+  display: flex; align-items: center;
+  padding: 7px 10px; border-radius: 8px; text-decoration: none;
+  color: #9ba8c4; font-size: 0.82rem; transition: all 0.15s;
+}
+.prods-sort-link:hover { background: rgba(91,127,255,0.1); color: #e8ecf4; }
+.prods-sort-link--active { background: rgba(91,127,255,0.15); color: #8ba4ff; font-weight: 700; }
+
+/* ─── Top bar ───────────────────────────────────── */
+.prods-topbar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+}
+.prods-result-label { font-size: 0.8rem; color: #6b7a99; }
+.prods-sort-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.prods-sort-label { font-size: 0.75rem; color: #6b7a99; }
+.prods-sort-chip {
+  font-size: 0.72rem; padding: 4px 10px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1); color: #6b7a99; text-decoration: none;
+}
+.prods-sort-chip:hover, .prods-sort-chip--active {
+  background: rgba(91,127,255,0.15); border-color: #5b7fff; color: #8ba4ff;
+}
+
+/* ─── PRODUCT GRID ──────────────────────────────── */
+.prods-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px;
+}
+@media (max-width: 576px) { .prods-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; } }
+
+/* ═══════════════════════════════════════════════
+   ✨ GLOW CARD — Product card with dynamic glow
+   ═══════════════════════════════════════════════ */
+.glow-card {
+  position: relative;
+  background: rgba(14, 17, 32, 0.9);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), border-color 0.25s, box-shadow 0.25s;
+  cursor: pointer;
+}
+.glow-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  border-color: rgba(91,127,255,0.4);
+  box-shadow: 0 12px 40px rgba(91,127,255,0.18), 0 0 0 1px rgba(91,127,255,0.12);
+}
+/* Dynamic glow blob that follows mouse */
+.glow-card-glow {
+  position: absolute; pointer-events: none;
+  width: 220px; height: 220px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(91,127,255,0.25) 0%, transparent 70%);
+  transform: translate(-50%,-50%);
+  opacity: 0; transition: opacity 0.3s;
+  top: 50%; left: 50%;
+}
+.glow-card:hover .glow-card-glow { opacity: 1; }
+
+/* ── Image ── */
+.glow-card-img-wrap {
+  position: relative; display: block; overflow: hidden;
+  height: 180px; background: rgba(255,255,255,0.03);
+}
+@media (max-width: 576px) { .glow-card-img-wrap { height: 130px; } }
+.glow-card-img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.glow-card:hover .glow-card-img { transform: scale(1.07); }
+.glow-card-img-placeholder {
+  width: 100%; height: 100%; display: flex; align-items: center;
+  justify-content: center; font-size: 3rem;
+}
+.glow-card-overlay {
+  position: absolute; inset: 0;
+  background: rgba(91,127,255,0.35);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.25s;
+  backdrop-filter: blur(2px);
+}
+.glow-card:hover .glow-card-overlay { opacity: 1; }
+.glow-card-overlay-text { color: #fff; font-size: 0.85rem; font-weight: 700; }
+
+/* ── Body ── */
+.glow-card-body { padding: 12px 14px 14px; }
+.glow-card-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.glow-card-cat { font-size: 0.68rem; color: #6b7a99; }
+.glow-card-title {
+  display: block; font-size: 0.88rem !important; font-weight: 700; color: #e8ecf4;
+  text-decoration: none; line-height: 1.4; margin-bottom: 4px;
+  transition: color 0.15s;
+}
+.glow-card-title:hover { color: #8ba4ff; }
+.glow-card-desc { font-size: 0.75rem !important; color: #6b7a99; line-height: 1.5; margin-bottom: 10px; }
+
+.glow-card-price-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.glow-card-price-wrap { display: flex; align-items: baseline; gap: 6px; }
+.glow-card-price { font-size: 1.05rem !important; font-weight: 900; color: #00e5b0; }
+.glow-card-original { font-size: 0.75rem; color: #6b7a99; text-decoration: line-through; }
+
+/* ── Stock bar ── */
+.glow-card-stock-wrap { margin-bottom: 10px; }
+.glow-card-stock-bar {
+  height: 4px; background: rgba(255,255,255,0.07);
+  border-radius: 2px; overflow: hidden; margin-bottom: 3px;
+}
+.glow-card-stock-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  max-width: 100%;
+}
+.glow-card-stock-text { font-size: 0.68rem; color: #f59e0b; font-weight: 600; }
+
+/* ── Add to Cart button ── */
+.glow-card-btn {
+  width: 100%; padding: 9px 0; border-radius: 10px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #5b7fff 0%, #7c3aed 100%);
+  color: white; font-size: 0.82rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+.glow-card-btn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, #00e5b0 0%, #059669 100%);
+  opacity: 0; transition: opacity 0.3s;
+}
+.glow-card-btn:hover::before { opacity: 1; }
+.glow-card-btn:active { transform: scale(0.97); }
+.glow-card-btn-icon, .glow-card-btn-text, .glow-card-btn-added { position: relative; z-index: 1; }
+.glow-card-btn.btn--adding { animation: btnPop 0.3s ease; }
+@keyframes btnPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+/* ═══════════════════════════════════════════════
+   🏷️ HOLO BADGE — SALE / HOT / LOW badges
+   ═══════════════════════════════════════════════ */
+.holo-badges {
+  position: absolute; top: 10px; left: 10px; right: 10px;
+  display: flex; gap: 5px; flex-wrap: wrap; z-index: 10;
+  pointer-events: none;
+}
+.holo-badge {
+  font-size: 0.65rem; font-weight: 800; padding: 3px 9px; border-radius: 20px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  animation: holoPulse 2s ease-in-out infinite;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+.holo-badge--sale {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(239,68,68,0.5);
+}
+.holo-badge--hot {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(245,158,11,0.5);
+}
+.holo-badge--new {
+  background: linear-gradient(135deg, #5b7fff, #7c3aed);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(91,127,255,0.5);
+}
+.holo-badge--low {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #0a0e1a;
+  box-shadow: 0 2px 10px rgba(245,158,11,0.4);
+}
+@keyframes holoPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+
+/* ═══════════════════════════════════════════════
+   💀 SKELETON LOADER
+   ═══════════════════════════════════════════════ */
+.skeleton-card {
+  background: rgba(14,17,32,0.9);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px; padding: 0 0 14px; overflow: hidden;
+}
+.skel-anim {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: skelShimmer 1.5s infinite;
+  border-radius: 6px;
+}
+@keyframes skelShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.sk-img { height: 180px; border-radius: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.sk-badge { height: 18px; width: 50px; margin: 12px 14px 6px; }
+.sk-title { height: 14px; margin: 0 14px 6px; }
+.sk-text { height: 10px; width: 80%; margin: 0 14px 10px; }
+.sk-price { height: 20px; width: 60%; margin: 0 14px 10px; }
+.sk-btn { height: 36px; margin: 0 14px; border-radius: 10px; }
+
+/* ═══════════════════════════════════════════════
+   🔵 STATUS PILL — level / category chips
+   ═══════════════════════════════════════════════ */
+.status-pill {
+  display: inline-block; font-size: 0.65rem !important; font-weight: 800;
+  padding: 3px 9px; border-radius: 20px; letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.status-pill--ssc {
+  background: linear-gradient(135deg, rgba(91,127,255,0.2), rgba(124,58,237,0.15));
+  color: #8ba4ff; border: 1px solid rgba(91,127,255,0.3);
+}
+.status-pill--hsc {
+  background: linear-gradient(135deg, rgba(0,229,176,0.15), rgba(5,150,105,0.15));
+  color: #00e5b0; border: 1px solid rgba(0,229,176,0.3);
+}
+.status-pill--both {
+  background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(239,68,68,0.1));
+  color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);
+}
+
+/* ── Mini stars ── */
+.mini-stars { display: flex; gap: 1px; }
+.mini-star { font-size: 0.72rem; color: rgba(255,255,255,0.15); }
+.mini-star--on { color: #f59e0b; }
+
+/* ─── Empty state ─── */
+.prods-empty {
+  grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: #6b7a99;
+}
+.prods-empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.prods-empty h3 { font-size: 1.1rem !important; color: #e8ecf4; margin-bottom: 8px; }
+.prods-empty p { font-size: 0.85rem !important; }
+.prods-empty-btn {
+  display: inline-block; margin-top: 16px; padding: 10px 24px;
+  background: linear-gradient(135deg, #5b7fff, #7c3aed);
+  color: white; border-radius: 10px; text-decoration: none; font-weight: 700;
+}
+
+/* ─── Pagination ─── */
+.prods-pagination {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 32px; flex-wrap: wrap;
+}
+.prods-page-btn {
+  padding: 8px 18px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.1); color: #8ba4ff;
+  text-decoration: none; font-size: 0.82rem; transition: all 0.2s;
+}
+.prods-page-btn:hover { background: rgba(91,127,255,0.15); border-color: #5b7fff; }
+.prods-page-num {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; font-size: 0.82rem; text-decoration: none; color: #6b7a99;
+  border: 1px solid rgba(255,255,255,0.07); transition: all 0.15s;
+}
+.prods-page-num:hover { background: rgba(91,127,255,0.1); color: #8ba4ff; }
+.prods-page-num--active {
+  background: linear-gradient(135deg, #5b7fff, #7c3aed);
+  color: white; border-color: transparent; font-weight: 800;
+}
+
+@media (max-width: 576px) {
+  .prods-topbar { flex-direction: column; align-items: flex-start; }
+  .prods-sidebar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .prods-search-box { grid-column: 1 / -1; }
+}
+</style>
+
+<!-- ══════════════════════════════════════════════════
+     JS — GlowCard mouse glow + Skeleton + Add-to-Cart feedback
+══════════════════════════════════════════════════ -->
+<script>
+// ── Sort options passed from Django context (safe fallback) ──
+const SORT_OPTS = [
+  ['newest',     'Newest',      '🆕'],
+  ['price_asc',  'Price: Low',  '⬆️'],
+  ['price_desc', 'Price: High', '⬇️'],
+  ['popular',    'Popular',     '🔥'],
+];
+
+// ── GlowCard mouse tracking ───────────────────────────────────
+document.querySelectorAll('.glow-card').forEach(card => {
+  const glow = card.querySelector('.glow-card-glow');
+  if (!glow) return;
+  card.addEventListener('mousemove', e => {
+    const rect = card.getBoundingClientRect();
+    glow.style.left = (e.clientX - rect.left) + 'px';
+    glow.style.top  = (e.clientY - rect.top)  + 'px';
+  });
+});
+
+// ── Skeleton Loader on filter/sort navigation ─────────────────
+document.querySelectorAll('.prods-cat-link, .prods-lvl-btn, .prods-sort-link, .prods-sort-chip, .prods-page-btn, .prods-page-num').forEach(link => {
+  link.addEventListener('click', () => {
+    const real = document.getElementById('realGrid');
+    const skel = document.getElementById('skeletonGrid');
+    if (real && skel) {
+      real.style.opacity = '0';
+      real.style.transition = 'opacity 0.2s';
+      skel.style.display = 'grid';
+      setTimeout(() => { skel.style.display = 'none'; real.style.opacity = '1'; }, 800);
+    }
+  });
+});
+
+// ── Add to Cart button visual feedback ───────────────────────
+document.querySelectorAll('.glow-card-btn.add-to-cart-btn').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    const textEl  = this.querySelector('.glow-card-btn-text');
+    const addedEl = this.querySelector('.glow-card-btn-added');
+    const iconEl  = this.querySelector('.glow-card-btn-icon');
+    if (!textEl || !addedEl) return;
+
+    const productId   = this.dataset.productId;
+    const productName = this.dataset.productName || 'Product';
+    const csrf        = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+    this.classList.add('btn--adding');
+    this.disabled = true;
+
+    fetch(`/cart/add/${productId}/`, {
+      method:  'POST',
+      headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(r => r.json())
+    .then(data => {
+      // Update badge
+      if (data.cart_count !== undefined && window.updateCartBadge) {
+        window.updateCartBadge(data.cart_count);
+      }
+      // Button state
+      textEl.style.display  = 'none';
+      iconEl.style.display  = 'none';
+      addedEl.style.display = 'inline';
+      this.style.background = 'linear-gradient(135deg,#00e5b0,#059669)';
+
+      setTimeout(() => {
+        textEl.style.display  = '';
+        iconEl.style.display  = '';
+        addedEl.style.display = 'none';
+        this.style.background = '';
+        this.disabled = false;
+        this.classList.remove('btn--adding');
+      }, 1800);
+    })
+    .catch(() => {
+      this.disabled = false;
+      this.classList.remove('btn--adding');
+    });
+  });
+});
+
+// ── Scroll reveal for cards ───────────────────────────────────
+if ('IntersectionObserver' in window) {
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }, i * 60);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.glow-card').forEach((card, i) => {
+    card.style.opacity   = '0';
+    card.style.transform = 'translateY(20px)';
+    card.style.transition = `opacity 0.4s ease ${i*0.04}s, transform 0.4s ease ${i*0.04}s`;
+    observer.observe(card);
+  });
+}
+</script>
+
+{% endblock %}
+
+{% block extra_css %}
+{# Sort options context injection for sidebar — rendered server-side #}
+{% endblock %}

@@ -1,0 +1,654 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard 2.0{% endblock %}
+{% block content %}
+<section class="adm-wrap py-4">
+<div class="container-fluid px-3 px-md-4">
+
+  <!-- ═══════════════ PAGE HEADER ═══════════════ -->
+  <div class="adm-header mb-4">
+    <div>
+      <h1 class="adm-title">🚀 Admin Dashboard</h1>
+      <p class="adm-sub">Real-time store overview — শেষ আপডেট: <span id="adm-clock"></span></p>
+    </div>
+    <div class="adm-nav-pills">
+      <a href="{% url 'admin_orders' %}" class="adm-pill">📋 Orders</a>
+      <a href="{% url 'manage_products' %}" class="adm-pill">📦 Products</a>
+      <a href="{% url 'admin_reviews' %}" class="adm-pill">⭐ Reviews</a>
+      <a href="{% url 'manage_coupons' %}" class="adm-pill">🎟️ Coupons</a>
+      <a href="{% url 'export_orders_csv' %}" class="adm-pill adm-pill--green" id="csvExportBtn">⬇️ Export CSV</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════ KPI GRID ═══════════════ -->
+  <div class="adm-kpi-grid mb-4">
+    <div class="adm-kpi-card adm-kpi--blue">
+      <div class="adm-kpi-icon">💰</div>
+      <div class="adm-kpi-val">৳{{ kpi.total_revenue|floatformat:0 }}</div>
+      <div class="adm-kpi-label">মোট Revenue</div>
+      <div class="adm-kpi-sub">আজ: ৳{{ kpi.today_revenue|floatformat:0 }}</div>
+    </div>
+    <div class="adm-kpi-card adm-kpi--purple">
+      <div class="adm-kpi-icon">📦</div>
+      <div class="adm-kpi-val">{{ kpi.total_orders }}</div>
+      <div class="adm-kpi-label">মোট Orders</div>
+      <div class="adm-kpi-sub">আজ: {{ kpi.today_orders }} টি</div>
+    </div>
+    <div class="adm-kpi-card adm-kpi--amber">
+      <div class="adm-kpi-icon">⏳</div>
+      <div class="adm-kpi-val">{{ kpi.pending }}</div>
+      <div class="adm-kpi-label">Pending</div>
+      <div class="adm-kpi-sub">এখনই দেখুন →</div>
+    </div>
+    <div class="adm-kpi-card adm-kpi--green">
+      <div class="adm-kpi-icon">✅</div>
+      <div class="adm-kpi-val">{{ kpi.delivered }}</div>
+      <div class="adm-kpi-label">Delivered</div>
+      <div class="adm-kpi-sub">এই মাস: ৳{{ kpi.this_month_revenue|floatformat:0 }}</div>
+    </div>
+    <div class="adm-kpi-card adm-kpi--teal">
+      <div class="adm-kpi-icon">👥</div>
+      <div class="adm-kpi-val">{{ total_users }}</div>
+      <div class="adm-kpi-label">Total Users</div>
+      <div class="adm-kpi-sub">নতুন (৩০ দিন): {{ new_users_30 }}</div>
+    </div>
+    <div class="adm-kpi-card adm-kpi--pink">
+      <div class="adm-kpi-icon">💳</div>
+      <div class="adm-kpi-val">{{ kpi.paid_orders }}</div>
+      <div class="adm-kpi-label">Paid Orders</div>
+      <div class="adm-kpi-sub">Cancelled: {{ kpi.cancelled }}</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CHARTS ROW ═══════════════ -->
+  <div class="adm-charts-row mb-4">
+    <!-- Revenue + Orders line chart -->
+    <div class="adm-chart-card adm-chart-card--lg">
+      <div class="adm-chart-header">
+        <span>📈 Revenue & Orders — শেষ ৩০ দিন</span>
+        <div class="adm-chart-legend">
+          <span class="adm-leg adm-leg--blue">Revenue</span>
+          <span class="adm-leg adm-leg--purple">Orders</span>
+        </div>
+      </div>
+      <canvas id="revenueChart" height="90"></canvas>
+    </div>
+
+    <!-- Status donut -->
+    <div class="adm-chart-card adm-chart-card--sm">
+      <div class="adm-chart-header"><span>🍩 Order Status</span></div>
+      <canvas id="statusDonut" height="200"></canvas>
+      <div class="adm-donut-legend" id="donutLegend"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ LOWER GRID ═══════════════ -->
+  <div class="adm-lower-grid mb-4">
+
+    <!-- Top Products -->
+    <div class="adm-panel">
+      <div class="adm-panel-head">🏆 Top Products <small>(৩০ দিন)</small></div>
+      {% for p in top_products %}
+      <div class="adm-tp-row">
+        <div class="adm-tp-rank">{{ forloop.counter }}</div>
+        <div class="adm-tp-name">{{ p.product__name }}</div>
+        <div class="adm-tp-bar-wrap">
+          <div class="adm-tp-bar" style="width:{{ p.units|floatformat:0 }}%"></div>
+        </div>
+        <div class="adm-tp-units">{{ p.units }} pcs</div>
+        <div class="adm-tp-rev">৳{{ p.revenue|floatformat:0 }}</div>
+      </div>
+      {% empty %}
+      <div class="adm-empty">কোনো data নেই।</div>
+      {% endfor %}
+    </div>
+
+    <!-- Low Stock Alerts -->
+    <div class="adm-panel">
+      <div class="adm-panel-head">⚠️ Low Stock Alert</div>
+      {% for p in low_stock %}
+      <div class="adm-ls-row">
+        <div class="adm-ls-name">{{ p.name }}</div>
+        <div class="adm-ls-cat">{{ p.category.name }}</div>
+        <div class="adm-ls-stock {% if p.stock == 0 %}adm-stock--zero{% elif p.stock <= 2 %}adm-stock--crit{% else %}adm-stock--low{% endif %}">
+          {% if p.stock == 0 %}❌ Out{% else %}{{ p.stock }} left{% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="adm-empty">✅ সব product ঠিকঠাক আছে।</div>
+      {% endfor %}
+    </div>
+
+    <!-- Top Buyers -->
+    <div class="adm-panel">
+      <div class="adm-panel-head">👑 Top Buyers</div>
+      {% for buyer in top_buyers %}
+      <div class="adm-buyer-row">
+        <div class="adm-buyer-rank">{{ forloop.counter }}</div>
+        <div class="adm-buyer-avatar">{{ buyer.user__username|slice:":1"|upper }}</div>
+        <div class="adm-buyer-name">{{ buyer.user__username }}</div>
+        <div class="adm-buyer-stats">
+          <span>{{ buyer.orders }} orders</span>
+          <span class="adm-buyer-spent">৳{{ buyer.spent|floatformat:0 }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <div class="adm-empty">No logged-in buyers yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ═══════════════ RECENT ORDERS ═══════════════ -->
+  <div class="adm-panel mb-4">
+    <div class="adm-panel-head d-flex justify-content-between align-items-center">
+      <span>🕐 সাম্প্রতিক Orders</span>
+      <a href="{% url 'admin_orders' %}" class="adm-see-all">সব দেখুন →</a>
+    </div>
+    <div class="adm-recent-table-wrap">
+      <table class="adm-recent-table">
+        <thead>
+          <tr>
+            <th>Order</th><th>Customer</th><th>Items</th><th>Total</th>
+            <th>Payment</th><th>Status</th><th>Date</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in recent_orders %}
+          <tr data-order-id="{{ order.id }}">
+            <td><span class="adm-oid">{{ order.order_id|default:order.id }}</span></td>
+            <td>
+              <div class="adm-cust-name">{{ order.customer_name }}</div>
+              <div class="adm-cust-phone">{{ order.phone }}</div>
+            </td>
+            <td>
+              {% for item in order.items.all %}
+              <span class="adm-item-tag">{{ item.name|truncatechars:18 }} ×{{ item.quantity }}</span>
+              {% endfor %}
+            </td>
+            <td class="adm-total-cell">৳{{ order.total_amount|floatformat:0 }}</td>
+            <td>
+              <span class="adm-pm-badge adm-pm-{{ order.payment_method }}">{{ order.payment_method }}</span>
+              {% if order.payment_status == 'paid' %}
+              <span class="adm-paid-dot">✓</span>
+              {% endif %}
+            </td>
+            <td>
+              <select class="adm-inline-select" data-order="{{ order.id }}"
+                      data-url="{% url 'update_order_status_ajax' order.id %}">
+                {% for val, label in status_choices %}
+                <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="adm-date-cell">{{ order.created_at|date:"d M, H:i" }}</td>
+            <td>
+              <a href="{% url 'order_tracking' order.id %}" class="adm-track-btn" target="_blank">Track</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════ CSV EXPORT PANEL ═══════════════ -->
+  <div class="adm-panel mb-4">
+    <div class="adm-panel-head">⬇️ CSV Export</div>
+    <form id="csvForm" class="adm-csv-form" action="{% url 'export_orders_csv' %}" method="GET" target="_blank">
+      <div class="adm-csv-row">
+        <div class="adm-csv-field">
+          <label>Status Filter</label>
+          <select name="status" class="adm-select-sm">
+            <option value="">All Statuses</option>
+            {% for val, label in status_choices %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="adm-csv-field">
+          <label>From Date</label>
+          <input type="date" name="from" class="adm-input-sm">
+        </div>
+        <div class="adm-csv-field">
+          <label>To Date</label>
+          <input type="date" name="to" class="adm-input-sm">
+        </div>
+        <button type="submit" class="adm-export-btn">⬇️ Download CSV</button>
+      </div>
+    </form>
+  </div>
+
+</div><!-- /container-fluid -->
+</section>
+
+<!-- ═══════ CHART.JS ═══════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+/* ─── Layout ──────────────────────────────────────────────────── */
+.adm-wrap { background: var(--dark-bg, #0a0e1a); min-height: 100vh; }
+
+.adm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.adm-title {
+  font-size: 1.4rem !important;
+  font-weight: 900 !important;
+  color: #e8ecf4;
+  margin: 0;
+}
+.adm-sub { font-size: 0.8rem !important; color: #6b7a99; margin: 4px 0 0; }
+
+.adm-nav-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-pill {
+  font-size: 0.78rem; padding: 6px 14px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1); color: #8ba4ff;
+  text-decoration: none; transition: all 0.2s;
+}
+.adm-pill:hover { background: rgba(91,127,255,0.15); border-color: #5b7fff; color: #fff; }
+.adm-pill--green { border-color: #00e5b0; color: #00e5b0; }
+.adm-pill--green:hover { background: rgba(0,229,176,0.15); }
+
+/* ─── KPI Grid ───────────────────────────────────────────────── */
+.adm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+@media (max-width: 1199px) { .adm-kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 576px)  { .adm-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+.adm-kpi-card {
+  border-radius: 14px; padding: 18px 16px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  position: relative; overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.adm-kpi-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+
+.adm-kpi-card::before {
+  content: ''; position: absolute; inset: 0;
+  opacity: 0.07; border-radius: 14px;
+}
+.adm-kpi--blue::before   { background: linear-gradient(135deg,#5b7fff,#7c3aed); }
+.adm-kpi--purple::before { background: linear-gradient(135deg,#a78bfa,#7c3aed); }
+.adm-kpi--amber::before  { background: linear-gradient(135deg,#f59e0b,#ef4444); }
+.adm-kpi--green::before  { background: linear-gradient(135deg,#00e5b0,#059669); }
+.adm-kpi--teal::before   { background: linear-gradient(135deg,#00b4d8,#0077b6); }
+.adm-kpi--pink::before   { background: linear-gradient(135deg,#f472b6,#ec4899); }
+
+.adm-kpi-icon { font-size: 1.4rem; margin-bottom: 6px; }
+.adm-kpi-val  { font-size: 1.35rem !important; font-weight: 900 !important; color: #e8ecf4; }
+.adm-kpi-label{ font-size: 0.72rem !important; color: #6b7a99; margin: 2px 0; text-transform: uppercase; letter-spacing: 0.05em; }
+.adm-kpi-sub  { font-size: 0.72rem !important; color: #8ba4ff; }
+
+.adm-kpi--amber .adm-kpi-val { color: #f59e0b; }
+.adm-kpi--green .adm-kpi-val { color: #00e5b0; }
+
+/* ─── Charts ─────────────────────────────────────────────────── */
+.adm-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) { .adm-charts-row { grid-template-columns: 1fr; } }
+
+.adm-chart-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 18px;
+}
+.adm-chart-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+  font-size: 0.85rem !important; font-weight: 700; color: #e8ecf4;
+}
+.adm-chart-legend { display: flex; gap: 12px; }
+.adm-leg {
+  font-size: 0.72rem; padding: 3px 10px; border-radius: 12px;
+  font-weight: 600;
+}
+.adm-leg--blue   { background: rgba(91,127,255,0.15); color: #8ba4ff; }
+.adm-leg--purple { background: rgba(167,139,250,0.15); color: #a78bfa; }
+
+.adm-donut-legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 12px; justify-content: center;
+}
+.adm-donut-item { font-size: 0.7rem; color: #6b7a99; display: flex; align-items: center; gap: 4px; }
+.adm-donut-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ─── Lower Grid ─────────────────────────────────────────────── */
+.adm-lower-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) { .adm-lower-grid { grid-template-columns: 1fr; } }
+
+.adm-panel {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 16px;
+}
+.adm-panel-head {
+  font-size: 0.85rem !important; font-weight: 700; color: #e8ecf4;
+  margin-bottom: 14px;
+}
+.adm-empty { font-size: 0.8rem; color: #6b7a99; text-align: center; padding: 20px; }
+.adm-see-all { font-size: 0.75rem; color: #5b7fff; text-decoration: none; }
+
+/* ─── Top Products ───────────────────────────────────────────── */
+.adm-tp-row {
+  display: grid; grid-template-columns: 24px 1fr 80px 50px 80px;
+  gap: 8px; align-items: center; margin-bottom: 10px;
+}
+.adm-tp-rank  { font-size: 0.75rem; color: #5b7fff; font-weight: 800; }
+.adm-tp-name  { font-size: 0.8rem !important; color: #e8ecf4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-tp-bar-wrap { height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.adm-tp-bar  { height: 100%; background: linear-gradient(90deg,#5b7fff,#00e5b0); border-radius: 3px; min-width: 8px; max-width: 100%; }
+.adm-tp-units { font-size: 0.72rem; color: #6b7a99; text-align: right; }
+.adm-tp-rev  { font-size: 0.75rem; color: #00e5b0; font-weight: 700; text-align: right; }
+
+/* ─── Low Stock ──────────────────────────────────────────────── */
+.adm-ls-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 8px; align-items: center; margin-bottom: 8px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.adm-ls-name { font-size: 0.8rem !important; color: #e8ecf4; }
+.adm-ls-cat  { font-size: 0.7rem; color: #6b7a99; }
+.adm-ls-stock { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 12px; }
+.adm-stock--zero { background: rgba(244,114,182,0.15); color: #f472b6; }
+.adm-stock--crit { background: rgba(239,68,68,0.15);  color: #ef4444; }
+.adm-stock--low  { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+/* ─── Buyers ─────────────────────────────────────────────────── */
+.adm-buyer-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 10px;
+}
+.adm-buyer-rank { font-size: 0.8rem; color: #5b7fff; font-weight: 800; width: 16px; }
+.adm-buyer-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg,#5b7fff,#7c3aed);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.adm-buyer-name  { font-size: 0.82rem !important; color: #e8ecf4; flex: 1; }
+.adm-buyer-stats { font-size: 0.72rem; color: #6b7a99; text-align: right; }
+.adm-buyer-spent { display: block; color: #00e5b0; font-weight: 700; }
+
+/* ─── Recent Orders Table ────────────────────────────────────── */
+.adm-recent-table-wrap { overflow-x: auto; }
+.adm-recent-table {
+  width: 100%; border-collapse: collapse; font-size: 0.8rem !important;
+}
+.adm-recent-table th {
+  padding: 8px 10px; text-align: left; color: #6b7a99;
+  font-size: 0.7rem !important; text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid rgba(255,255,255,0.07); white-space: nowrap;
+}
+.adm-recent-table td {
+  padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #c4cde0;
+  vertical-align: middle;
+}
+.adm-recent-table tr:hover td { background: rgba(255,255,255,0.02); }
+.adm-recent-table tr.adm-row--updating td { opacity: 0.5; transition: opacity 0.2s; }
+
+.adm-oid     { font-weight: 800; color: #8ba4ff; font-family: monospace; font-size: 0.78rem; }
+.adm-cust-name { font-weight: 600; color: #e8ecf4; }
+.adm-cust-phone{ font-size: 0.7rem; color: #6b7a99; }
+.adm-item-tag  { display: inline-block; background: rgba(91,127,255,0.1); color: #8ba4ff; font-size: 0.7rem; padding: 1px 6px; border-radius: 8px; margin: 1px; }
+.adm-total-cell{ font-weight: 800; color: #00e5b0; }
+.adm-date-cell { color: #6b7a99; font-size: 0.75rem; white-space: nowrap; }
+
+.adm-pm-badge {
+  font-size: 0.68rem; padding: 2px 7px; border-radius: 10px;
+  background: rgba(255,255,255,0.06); color: #8ba4ff;
+  text-transform: uppercase; font-weight: 700;
+}
+.adm-pm-paid { color: #00e5b0; }
+.adm-paid-dot { color: #00e5b0; font-size: 0.8rem; margin-left: 3px; }
+
+.adm-inline-select {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: #e8ecf4;
+  font-size: 0.75rem; padding: 4px 8px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.adm-inline-select:focus { outline: none; border-color: #5b7fff; }
+.adm-inline-select.adm-select--saving { border-color: #f59e0b; }
+.adm-inline-select.adm-select--saved  { border-color: #00e5b0; }
+
+.adm-track-btn {
+  font-size: 0.72rem; padding: 4px 10px; border-radius: 8px;
+  background: rgba(91,127,255,0.1); color: #8ba4ff;
+  text-decoration: none; white-space: nowrap;
+}
+.adm-track-btn:hover { background: rgba(91,127,255,0.2); color: #fff; }
+
+/* ─── CSV Form ───────────────────────────────────────────────── */
+.adm-csv-form { margin-top: 4px; }
+.adm-csv-row  { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.adm-csv-field label { font-size: 0.72rem; color: #6b7a99; display: block; margin-bottom: 4px; }
+.adm-select-sm, .adm-input-sm {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: #e8ecf4; font-size: 0.8rem; padding: 6px 10px;
+}
+.adm-input-sm { width: 140px; }
+.adm-export-btn {
+  background: linear-gradient(135deg,#00e5b0,#059669);
+  border: none; border-radius: 10px; color: #0a0e1a;
+  font-size: 0.82rem; font-weight: 700; padding: 8px 18px; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.adm-export-btn:hover { opacity: 0.85; }
+</style>
+
+<script>
+// ── Live clock ────────────────────────────────────────────────
+(function() {
+  const el = document.getElementById('adm-clock');
+  if (!el) return;
+  function tick() {
+    el.textContent = new Date().toLocaleString('en-BD', {
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+  }
+  tick(); setInterval(tick, 1000);
+})();
+
+// ── Chart.js defaults ─────────────────────────────────────────
+Chart.defaults.color = '#6b7a99';
+Chart.defaults.font.family = 'inherit';
+
+// ── Revenue + Orders line chart ───────────────────────────────
+(function() {
+  const labels  = {{ chart_labels|safe }};
+  const revenue = {{ chart_revenue|safe }};
+  const orders  = {{ chart_orders|safe }};
+
+  const ctx = document.getElementById('revenueChart');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Revenue (৳)',
+          data: revenue,
+          borderColor: '#5b7fff',
+          backgroundColor: 'rgba(91,127,255,0.08)',
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#5b7fff',
+          yAxisID: 'y',
+        },
+        {
+          label: 'Orders',
+          data: orders,
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167,139,250,0.06)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#a78bfa',
+          yAxisID: 'y1',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { maxTicksLimit: 10, font: { size: 10 } },
+        },
+        y: {
+          type: 'linear', position: 'left',
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            font: { size: 10 },
+            callback: v => '৳' + v.toLocaleString(),
+          },
+        },
+        y1: {
+          type: 'linear', position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: { font: { size: 10 } },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,14,26,0.92)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          callbacks: {
+            label: ctx => ctx.dataset.label === 'Revenue (৳)'
+              ? ' ৳' + ctx.parsed.y.toLocaleString()
+              : ' ' + ctx.parsed.y + ' orders',
+          },
+        },
+      },
+    },
+  });
+})();
+
+// ── Status Donut ──────────────────────────────────────────────
+(function() {
+  const labels = {{ status_labels|safe }};
+  const counts = {{ status_counts|safe }};
+  const palette = ['#f59e0b','#8ba4ff','#a78bfa','#00e5b0','#00ff87','#f472b6'];
+
+  const ctx = document.getElementById('statusDonut');
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: palette.slice(0, labels.length),
+        borderWidth: 2,
+        borderColor: '#0a0e1a',
+        hoverOffset: 8,
+      }],
+    },
+    options: {
+      responsive: true,
+      cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(10,14,26,0.92)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+        },
+      },
+    },
+  });
+
+  // Build custom legend
+  const leg = document.getElementById('donutLegend');
+  if (leg) {
+    labels.forEach((lbl, i) => {
+      const div = document.createElement('div');
+      div.className = 'adm-donut-item';
+      div.innerHTML = `<span class="adm-donut-dot" style="background:${palette[i]}"></span>${lbl}: ${counts[i]}`;
+      leg.appendChild(div);
+    });
+  }
+})();
+
+// ── Inline status select (AJAX) ───────────────────────────────
+document.querySelectorAll('.adm-inline-select').forEach(sel => {
+  sel.addEventListener('change', function() {
+    const row = this.closest('tr');
+    const url = this.dataset.url;
+    const status = this.value;
+    const csrf = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+    this.classList.add('adm-select--saving');
+    row?.classList.add('adm-row--updating');
+
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrf,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `status=${encodeURIComponent(status)}`,
+    })
+    .then(r => r.json())
+    .then(data => {
+      this.classList.remove('adm-select--saving');
+      row?.classList.remove('adm-row--updating');
+      if (data.success) {
+        this.classList.add('adm-select--saved');
+        setTimeout(() => this.classList.remove('adm-select--saved'), 2000);
+      }
+    })
+    .catch(() => {
+      this.classList.remove('adm-select--saving');
+      row?.classList.remove('adm-row--updating');
+    });
+  });
+});
+
+// ── Animate KPI counters ──────────────────────────────────────
+document.querySelectorAll('.adm-kpi-val').forEach(el => {
+  const text = el.textContent.trim();
+  const num  = parseFloat(text.replace(/[^0-9.]/g, ''));
+  if (isNaN(num) || num === 0) return;
+  const isMoney = text.startsWith('৳');
+  const prefix  = isMoney ? '৳' : '';
+  let start = 0;
+  const dur = 1200;
+  const step = 16;
+  const inc  = num / (dur / step);
+  const timer = setInterval(() => {
+    start = Math.min(start + inc, num);
+    el.textContent = prefix + Math.round(start).toLocaleString();
+    if (start >= num) clearInterval(timer);
+  }, step);
+});
+</script>
+{% endblock %}

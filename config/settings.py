@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',   # 4.2 Sitemap support
     'core',
 ]
 
@@ -39,8 +40,12 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates', BASE_DIR / 'core' / 'templates'],
-'APP_DIRS': False,
+        'APP_DIRS': False,  # ← এটা রাখুন
         'OPTIONS': {
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',  # ✅ এটা যোগ করুন
+            ],
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
@@ -77,6 +82,86 @@ OPENAI_API_KEY      = os.getenv('OPENAI_API_KEY', '')
 OPENAI_MODEL        = os.getenv('OPENAI_MODEL', 'gpt-3.5-turbo')
 HUGGINGFACE_API_KEY = os.getenv('HUGGINGFACE_API_KEY', '')
 HUGGINGFACE_MODEL   = os.getenv('HUGGINGFACE_MODEL', 'google/flan-t5-small')
+
+# ── SSLCommerz Payment Gateway ───────
+# Sandbox: https://sandbox.sslcommerz.com → Developer Dashboard এ account খোলো
+# Live:    https://merchant.sslcommerz.com
+SSLCOMMERZ_STORE_ID   = os.getenv('SSLCOMMERZ_STORE_ID', '')
+SSLCOMMERZ_STORE_PASS = os.getenv('SSLCOMMERZ_STORE_PASS', '')
+SSLCOMMERZ_IS_SANDBOX = os.getenv('SSLCOMMERZ_IS_SANDBOX', 'True') == 'True'
+
+# ── Google Analytics ─────────────────
+GA_MEASUREMENT_ID = os.getenv('GA_MEASUREMENT_ID', '')  # e.g. G-XXXXXXXXXX
+
+# ── Rate Limiting ─────────────────────
+# Max requests per window for sensitive endpoints
+RATE_LIMIT_CHECKOUT   = int(os.getenv('RATE_LIMIT_CHECKOUT', '5'))    # 5 per window
+RATE_LIMIT_WINDOW_SEC = int(os.getenv('RATE_LIMIT_WINDOW_SEC', '60')) # 60 seconds
+
+# ── Cache (default: in-memory locmem, upgrade to Redis in prod) ──
+# For Redis: pip install django-redis
+# Then set: CACHE_BACKEND=django_redis.cache.RedisCache
+# And:      REDIS_URL=redis://127.0.0.1:6379/1
+_cache_backend = os.getenv('CACHE_BACKEND', 'django.core.cache.backends.locmem.LocMemCache')
+_redis_url     = os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1')
+
+if 'redis' in _cache_backend.lower():
+    CACHES = {
+        'default': {
+            'BACKEND': _cache_backend,
+            'LOCATION': _redis_url,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'IGNORE_EXCEPTIONS': True,  # graceful degradation if Redis is down
+            },
+            'KEY_PREFIX': 'pk',
+            'TIMEOUT': 300,  # 5 min default
+        }
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': _cache_backend,
+            'LOCATION': 'practical-khata-cache',
+            'TIMEOUT': 300,
+        }
+    }
+
+# ── Site ID (for django.contrib.sitemaps) ──
+SITE_ID = 1
+
+# ── Admin 2FA (django-otp + django-two-factor-auth) ──────────
+# ACTIVATE:
+#   pip install django-otp django-two-factor-auth qrcode[pil]
+# Then add to INSTALLED_APPS:
+#   'django_otp', 'django_otp.plugins.otp_totp', 'two_factor',
+# And add to MIDDLEWARE (right after AuthenticationMiddleware):
+#   'django_otp.middleware.OTPMiddleware',
+# And change admin URL to use two-factor admin:
+#   from two_factor.admin import AdminSiteOTPRequired
+#   admin.site.__class__ = AdminSiteOTPRequired
+# Then run: python manage.py migrate
+ADMIN_2FA_ENABLED = os.getenv('ADMIN_2FA_ENABLED', 'False') == 'True'
+
+if ADMIN_2FA_ENABLED:
+    try:
+        import django_otp  # noqa
+        INSTALLED_APPS += [
+            'django_otp',
+            'django_otp.plugins.otp_totp',
+            'django_otp.plugins.otp_static',
+            'two_factor',
+        ]
+        # Insert OTP middleware after AuthenticationMiddleware
+        _auth_idx = MIDDLEWARE.index('django.contrib.auth.middleware.AuthenticationMiddleware')
+        MIDDLEWARE.insert(_auth_idx + 1, 'django_otp.middleware.OTPMiddleware')
+
+        TWO_FACTOR_FORCE_OTP_ADMIN = True
+        TWO_FACTOR_PATCH_ADMIN     = True
+    except ImportError:
+        pass  # Package not installed — 2FA silently disabled
 
 # ── Security (Production) ────────────
 if not DEBUG:

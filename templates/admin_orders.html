@@ -1,312 +1,488 @@
 {% extends 'base.html' %}
 {% block title %}Admin — Orders{% endblock %}
 {% block content %}
-<section class="py-5">
-    <div class="container">
+<section class="py-4">
+<div class="container-fluid px-3 px-md-4">
 
-        <!-- Stats -->
-        <div class="ao-stats-row">
-            <div class="ao-stat">
-                <div class="ao-stat-num">{{ orders|length }}</div>
-                <div class="ao-stat-label">Filtered Orders</div>
-            </div>
-            <div class="ao-stat">
-                <div class="ao-stat-num" style="color:#f59e0b;">{{ pending_count }}</div>
-                <div class="ao-stat-label">Pending</div>
-            </div>
-            <div class="ao-stat">
-                <div class="ao-stat-num" style="color:#00e5b0;">{{ today_orders }}</div>
-                <div class="ao-stat-label">Today</div>
-            </div>
-            <div class="ao-stat">
-                <div class="ao-stat-num" style="color:#5b7fff;">৳{{ total_revenue|floatformat:0 }}</div>
-                <div class="ao-stat-label">Total Revenue</div>
-            </div>
-        </div>
-
-        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <h2 style="font-size:1.2rem !important; font-weight:700 !important; color:#e8ecf4; margin:0;">📋 সব Orders
-            </h2>
-            <!-- Filter -->
-            <div class="ao-filters">
-                <a href="{% url 'admin_orders' %}"
-                    class="ao-filter-btn {% if not status_filter %}active{% endif %}">All</a>
-                {% for val, label in status_choices %}
-                <a href="?status={{ val }}" class="ao-filter-btn {% if status_filter == val %}active{% endif %}">{{
-                    label }}</a>
-                {% endfor %}
-            </div>
-        </div>
-
-        {% for order in orders %}
-        <div class="ao-card">
-            <div class="ao-card-top">
-                <div>
-                    <span class="ao-order-id">#{{ order.id }}</span>
-                    <span class="ao-name">{{ order.customer_name }}</span>
-                    <span class="ao-phone">{{ order.phone }}</span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span class="dao-status status-{{ order.status }}">{{ order.get_status_display }}</span>
-                    <span class="ao-date">{{ order.created_at|date:"d M, H:i" }}</span>
-                </div>
-            </div>
-
-            <div class="ao-items-row">
-                {% for item in order.items.all %}
-                <span class="dao-item-tag">{{ item.product.name }} ×{{ item.quantity }}</span>
-                {% endfor %}
-            </div>
-
-            <div class="ao-address">📍 {{ order.address }}</div>
-
-            <div class="ao-card-footer">
-                <div class="ao-total">৳{{ order.final_amount|floatformat:0 }}
-                    {% if order.discount %}<span class="ao-discount">−৳{{ order.discount|floatformat:0 }}
-                        discount</span>{% endif %}
-                </div>
-                <!-- Status Update Form -->
-                <form method="POST" action="{% url 'update_order_status' order.id %}" class="ao-update-form">
-                    {% csrf_token %}
-                    <select name="status" class="ao-select">
-                        {% for val, label in status_choices %}
-                        <option value="{{ val }}" {% if order.status==val %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" name="tracking_note" value="{{ order.tracking_note }}" class="ao-note-input"
-                        placeholder="Note (optional)">
-                    <button type="submit" class="ao-update-btn">Update</button>
-                    <a href="{% url 'order_tracking' order.id %}" class="ao-track-link" target="_blank">Tracking →</a>
-                </form>
-            </div>
-        </div>
-        {% empty %}
-        <div style="text-align:center; padding:48px; color:#6b7a99;">কোনো order নেই।</div>
-        {% endfor %}
-
+  <!-- Page Header -->
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+    <div>
+      <h1 style="font-size:1.3rem !important; font-weight:900 !important; color:#e8ecf4; margin:0;">📋 Orders</h1>
+      <p style="font-size:0.78rem; color:#6b7a99; margin:2px 0 0;">Manage all customer orders</p>
     </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <a href="{% url 'admin_dashboard' %}" class="ao-pill">📊 Dashboard</a>
+      <a href="{% url 'export_orders_csv' %}{% if status_filter %}?status={{ status_filter }}{% endif %}" class="ao-pill ao-pill--green">⬇️ CSV</a>
+      <button class="ao-pill ao-pill--toggle" id="viewToggle" onclick="toggleView()">🗂️ Kanban</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="ao-stats-row mb-4">
+    <div class="ao-stat">
+      <div class="ao-stat-num">{{ stats.total_count }}</div>
+      <div class="ao-stat-label">Total</div>
+    </div>
+    <div class="ao-stat">
+      <div class="ao-stat-num" style="color:#f59e0b;">{{ stats.pending_count }}</div>
+      <div class="ao-stat-label">Pending</div>
+    </div>
+    <div class="ao-stat">
+      <div class="ao-stat-num" style="color:#00e5b0;">{{ stats.today_count }}</div>
+      <div class="ao-stat-label">Today</div>
+    </div>
+    <div class="ao-stat">
+      <div class="ao-stat-num" style="color:#5b7fff;">৳{{ stats.total_revenue|floatformat:0 }}</div>
+      <div class="ao-stat-label">Revenue</div>
+    </div>
+    <div class="ao-stat">
+      <div class="ao-stat-num" style="color:#00ff87;">{{ stats.delivered_count }}</div>
+      <div class="ao-stat-label">Delivered</div>
+    </div>
+  </div>
+
+  <!-- Search + Filter bar -->
+  <form method="GET" class="ao-search-bar mb-3" id="filterForm">
+    <input type="text" name="search" value="{{ search }}" placeholder="🔍 Order ID, নাম, ফোন..." class="ao-search-input">
+    <div class="ao-filters">
+      <a href="{% url 'admin_orders' %}" class="ao-filter-btn {% if not status_filter %}active{% endif %}">All</a>
+      {% for val, label in status_choices %}
+      <a href="?status={{ val }}{% if search %}&search={{ search }}{% endif %}"
+         class="ao-filter-btn {% if status_filter == val %}active{% endif %}">{{ label }}</a>
+      {% endfor %}
+    </div>
+    <button type="submit" class="ao-search-btn">Search</button>
+  </form>
+
+  <!-- ══════════════════════════════════════════
+       LIST VIEW (default)
+  ══════════════════════════════════════════ -->
+  <div id="listView">
+    {% for order in orders %}
+    <div class="ao-card" data-order-id="{{ order.id }}" data-status="{{ order.status }}">
+      <div class="ao-card-top">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <span class="ao-order-id">{{ order.order_id|default:order.id }}</span>
+          <span class="ao-name">{{ order.customer_name }}</span>
+          <span class="ao-phone">{{ order.phone }}</span>
+          {% if order.payment_status == 'paid' %}
+          <span class="ao-paid-badge">✓ PAID</span>
+          {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="dao-status status-{{ order.status }}">{{ order.get_status_display }}</span>
+          <span class="ao-date">{{ order.created_at|date:"d M, H:i" }}</span>
+        </div>
+      </div>
+
+      <div class="ao-items-row">
+        {% for item in order.items.all %}
+        <span class="dao-item-tag">{{ item.product.name }} ×{{ item.quantity }}</span>
+        {% endfor %}
+      </div>
+
+      <div class="ao-address">📍 {{ order.address }}</div>
+
+      <div class="ao-card-footer">
+        <div class="ao-total">৳{{ order.final_amount|floatformat:0 }}
+          {% if order.discount %}<span class="ao-discount">−৳{{ order.discount|floatformat:0 }}</span>{% endif %}
+        </div>
+        <!-- AJAX inline update -->
+        <div class="ao-update-inline" data-order="{{ order.id }}"
+             data-ajax-url="{% url 'update_order_status_ajax' order.id %}">
+          <select class="ao-select ao-ajax-select">
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if order.status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" class="ao-note-input ao-ajax-note" value="{{ order.tracking_note }}" placeholder="Note (optional)">
+          <button class="ao-update-btn ao-ajax-save-btn">Save</button>
+          <span class="ao-save-status"></span>
+          <a href="{% url 'order_tracking' order.id %}" class="ao-track-link" target="_blank">Tracking →</a>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div style="text-align:center; padding:48px; color:#6b7a99;">কোনো order নেই।</div>
+    {% endfor %}
+
+    <!-- Pagination -->
+    {% if orders.has_other_pages %}
+    <div class="ao-pagination">
+      {% if orders.has_previous %}
+      <a href="?page={{ orders.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="ao-page-btn">← Prev</a>
+      {% endif %}
+      <span class="ao-page-info">{{ orders.number }} / {{ orders.paginator.num_pages }}</span>
+      {% if orders.has_next %}
+      <a href="?page={{ orders.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search %}&search={{ search }}{% endif %}" class="ao-page-btn">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       KANBAN VIEW (hidden by default)
+  ══════════════════════════════════════════ -->
+  <div id="kanbanView" style="display:none;">
+    <div class="kan-board">
+      {% for val, label in status_choices %}
+      <div class="kan-col" data-status="{{ val }}">
+        <div class="kan-col-head">
+          <span class="kan-col-label status-{{ val }}">{{ label }}</span>
+          <span class="kan-col-count" id="kanCount-{{ val }}">0</span>
+        </div>
+        <div class="kan-cards" id="kanCol-{{ val }}">
+          <!-- Filled by JS from list view data -->
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p style="text-align:center; font-size:0.75rem; color:#6b7a99; margin-top:12px;">
+      📌 Click card to update status quickly
+    </p>
+  </div>
+
+</div>
 </section>
 
 <style>
-    .ao-stats-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        margin-bottom: 24px;
-    }
+.ao-pill {
+  font-size: 0.78rem; padding: 6px 14px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1); color: #8ba4ff;
+  text-decoration: none; cursor: pointer;
+  background: transparent; transition: all 0.2s;
+}
+.ao-pill:hover, .ao-pill--toggle.active { background: rgba(91,127,255,0.15); border-color: #5b7fff; color: #fff; }
+.ao-pill--green { border-color: #00e5b0; color: #00e5b0; }
+.ao-pill--green:hover { background: rgba(0,229,176,0.1); }
 
-    .ao-stat {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 12px;
-        padding: 16px;
-        text-align: center;
-    }
+.ao-stats-row {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
+}
+.ao-stat {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 14px; text-align: center;
+}
+.ao-stat-num   { font-size: 1.3rem !important; font-weight: 900 !important; color: #e8ecf4; }
+.ao-stat-label { font-size: 0.72rem !important; color: #6b7a99; margin-top: 2px; }
 
-    .ao-stat-num {
-        font-size: 1.4rem !important;
-        font-weight: 900 !important;
-        color: #e8ecf4;
-    }
+/* Search bar */
+.ao-search-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 12px 16px;
+}
+.ao-search-input {
+  flex: 1; min-width: 200px;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: #e8ecf4; font-size: 0.82rem;
+  padding: 7px 12px;
+}
+.ao-search-input:focus { outline: none; border-color: #5b7fff; }
+.ao-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.ao-filter-btn {
+  font-size: 0.75rem; padding: 5px 12px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1); color: #6b7a99; text-decoration: none;
+}
+.ao-filter-btn:hover, .ao-filter-btn.active {
+  background: rgba(91,127,255,0.15); border-color: #5b7fff; color: #8ba4ff;
+}
+.ao-search-btn {
+  background: linear-gradient(135deg,#5b7fff,#7c3aed); border: none;
+  border-radius: 8px; color: white; font-size: 0.8rem; font-weight: 600;
+  padding: 7px 16px; cursor: pointer;
+}
 
-    .ao-stat-label {
-        font-size: 0.75rem !important;
-        color: #6b7a99;
-        margin-top: 4px;
-    }
+/* Order cards */
+.ao-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px; padding: 16px; margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.ao-card:hover { border-color: rgba(91,127,255,0.2); }
 
-    .ao-filters {
-        display: flex;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
+.ao-card-top {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 10px;
+}
+.ao-order-id { font-weight: 800; color: #8ba4ff; font-size: 0.85rem !important; font-family: monospace; }
+.ao-name     { font-weight: 600; color: #e8ecf4; font-size: 0.875rem !important; }
+.ao-phone    { font-size: 0.8rem !important; color: #6b7a99; }
+.ao-date     { font-size: 0.75rem !important; color: #6b7a99; }
+.ao-paid-badge { font-size: 0.65rem; padding: 2px 7px; border-radius: 10px; background: rgba(0,229,176,0.15); color: #00e5b0; font-weight: 800; }
 
-    .ao-filter-btn {
-        font-size: 0.75rem;
-        padding: 5px 12px;
-        border-radius: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #6b7a99;
-        text-decoration: none;
-        transition: all 0.2s;
-    }
+.ao-items-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.dao-item-tag { background: rgba(91,127,255,0.08); color: #8ba4ff; font-size: 0.72rem; padding: 2px 8px; border-radius: 8px; }
 
-    .ao-filter-btn:hover,
-    .ao-filter-btn.active {
-        background: rgba(91, 127, 255, 0.15);
-        border-color: #5b7fff;
-        color: #8ba4ff;
-    }
+.ao-address { font-size: 0.8rem !important; color: #6b7a99; margin-bottom: 12px; }
 
-    .ao-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 10px;
-    }
+.ao-card-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.ao-total   { font-weight: 800; color: #00e5b0; font-size: 1rem !important; }
+.ao-discount{ font-size: 0.75rem; color: #f472b6; margin-left: 6px; }
 
-    .ao-card-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
+.ao-update-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.ao-select, .ao-note-input {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: #e8ecf4; font-size: 0.8rem; padding: 5px 8px;
+}
+.ao-note-input { width: 150px; }
+.ao-update-btn {
+  background: linear-gradient(135deg,#5b7fff,#7c3aed); border: none;
+  border-radius: 8px; color: white; font-size: 0.8rem; font-weight: 600;
+  padding: 6px 14px; cursor: pointer; transition: opacity 0.2s;
+}
+.ao-update-btn:hover { opacity: 0.85; }
+.ao-track-link { font-size: 0.78rem; color: #5b7fff; text-decoration: none; }
 
-    .ao-order-id {
-        font-weight: 800;
-        color: #8ba4ff;
-        font-size: 0.9rem !important;
-        margin-right: 10px;
-    }
+.ao-save-status { font-size: 0.72rem; min-width: 40px; }
+.ao-save-status.ok  { color: #00e5b0; }
+.ao-save-status.err { color: #f472b6; }
 
-    .ao-name {
-        font-weight: 600;
-        color: #e8ecf4;
-        font-size: 0.875rem !important;
-        margin-right: 8px;
-    }
+/* Status pills */
+.dao-status {
+  font-size: 0.72rem !important; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px; text-transform: capitalize;
+}
+.status-pending    { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.status-confirmed  { background: rgba(91,127,255,0.15); color: #8ba4ff; }
+.status-processing { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.status-dispatched { background: rgba(0,229,176,0.15); color: #00e5b0; }
+.status-delivered  { background: rgba(0,255,135,0.15); color: #00ff87; }
+.status-cancelled  { background: rgba(244,114,182,0.15); color: #f472b6; }
 
-    .ao-phone {
-        font-size: 0.8rem !important;
-        color: #6b7a99;
-    }
+/* Pagination */
+.ao-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; }
+.ao-page-btn {
+  font-size: 0.8rem; padding: 6px 16px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1); color: #8ba4ff; text-decoration: none;
+}
+.ao-page-btn:hover { background: rgba(91,127,255,0.15); }
+.ao-page-info { font-size: 0.78rem; color: #6b7a99; }
 
-    .ao-date {
-        font-size: 0.75rem !important;
-        color: #6b7a99;
-    }
+/* ── Kanban ───────────────────────────────────────────────── */
+.kan-board {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px; overflow-x: auto;
+}
+@media (max-width: 900px) { .kan-board { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 576px) { .kan-board { grid-template-columns: repeat(2, 1fr); } }
 
-    .ao-items-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 8px;
-    }
+.kan-col {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px; padding: 12px; min-height: 200px;
+}
+.kan-col-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px;
+}
+.kan-col-label { font-size: 0.72rem !important; font-weight: 700; }
+.kan-col-count {
+  background: rgba(255,255,255,0.07); color: #6b7a99;
+  font-size: 0.7rem; padding: 1px 7px; border-radius: 10px;
+}
 
-    .ao-address {
-        font-size: 0.8rem !important;
-        color: #6b7a99;
-        margin-bottom: 12px;
-    }
+.kan-card {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; padding: 10px; margin-bottom: 8px;
+  cursor: pointer; transition: all 0.15s;
+}
+.kan-card:hover {
+  border-color: rgba(91,127,255,0.3);
+  background: rgba(91,127,255,0.06);
+  transform: translateY(-2px);
+}
+.kan-card-id   { font-size: 0.7rem; font-weight: 800; color: #8ba4ff; font-family: monospace; }
+.kan-card-name { font-size: 0.78rem !important; font-weight: 600; color: #e8ecf4; margin: 2px 0; }
+.kan-card-total{ font-size: 0.72rem; color: #00e5b0; font-weight: 700; }
+.kan-card-date { font-size: 0.65rem; color: #6b7a99; }
+.kan-card-items{ font-size: 0.68rem; color: #6b7a99; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .ao-card-footer {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 10px;
-    }
+/* Status quick-select on kanban card click */
+.kan-card-actions {
+  display: none; margin-top: 8px;
+  border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;
+}
+.kan-card.kan-open .kan-card-actions { display: block; }
+.kan-quick-select {
+  width: 100%; background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+  color: #e8ecf4; font-size: 0.75rem; padding: 4px 6px;
+}
+.kan-save-btn {
+  width: 100%; margin-top: 5px;
+  background: linear-gradient(135deg,#5b7fff,#7c3aed);
+  border: none; border-radius: 6px; color: white;
+  font-size: 0.72rem; font-weight: 700; padding: 5px 0; cursor: pointer;
+}
 
-    .ao-total {
-        font-weight: 800;
-        color: #00e5b0;
-        font-size: 1rem !important;
-    }
-
-    .ao-discount {
-        font-size: 0.75rem;
-        color: #f472b6;
-        margin-left: 6px;
-    }
-
-    .ao-update-form {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-left: auto;
-    }
-
-    .ao-select {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        color: #e8ecf4;
-        font-size: 0.8rem;
-        padding: 5px 8px;
-    }
-
-    .ao-note-input {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-        color: #e8ecf4;
-        font-size: 0.8rem;
-        padding: 5px 10px;
-        width: 160px;
-    }
-
-    .ao-update-btn {
-        background: linear-gradient(135deg, #5b7fff, #7c3aed);
-        border: none;
-        border-radius: 8px;
-        color: white;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 6px 14px;
-        cursor: pointer;
-    }
-
-    .ao-track-link {
-        font-size: 0.78rem;
-        color: #5b7fff;
-        text-decoration: none;
-    }
-
-    /* reuse dao-status */
-    .dao-status {
-        font-size: 0.72rem !important;
-        font-weight: 700;
-        padding: 3px 10px;
-        border-radius: 20px;
-        text-transform: capitalize;
-    }
-
-    .status-pending {
-        background: rgba(245, 158, 11, 0.15);
-        color: #f59e0b;
-    }
-
-    .status-confirmed {
-        background: rgba(91, 127, 255, 0.15);
-        color: #8ba4ff;
-    }
-
-    .status-processing {
-        background: rgba(167, 139, 250, 0.15);
-        color: #a78bfa;
-    }
-
-    .status-dispatched {
-        background: rgba(0, 229, 176, 0.15);
-        color: #00e5b0;
-    }
-
-    .status-delivered {
-        background: rgba(0, 255, 135, 0.15);
-        color: #00ff87;
-    }
-
-    .status-cancelled {
-        background: rgba(244, 114, 182, 0.15);
-        color: #f472b6;
-    }
-
-    @media (max-width:576px) {
-        .ao-stats-row {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
-        .ao-update-form {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-
-        .ao-note-input {
-            width: 100%;
-        }
-    }
+@media (max-width: 576px) {
+  .ao-stats-row { grid-template-columns: repeat(3, 1fr); }
+  .ao-update-inline { flex-direction: column; align-items: flex-start; }
+  .ao-note-input { width: 100%; }
+}
 </style>
+
+<script>
+const CSRF = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+const STATUS_CHOICES = [
+  {% for val, label in status_choices %}
+  {val: '{{ val }}', label: '{{ label }}'},
+  {% endfor %}
+];
+
+// ── AJAX Save (list view) ─────────────────────────────────────
+document.querySelectorAll('.ao-update-inline').forEach(wrap => {
+  const btn   = wrap.querySelector('.ao-ajax-save-btn');
+  const sel   = wrap.querySelector('.ao-ajax-select');
+  const note  = wrap.querySelector('.ao-ajax-note');
+  const badge = wrap.querySelector('.ao-save-status');
+  const url   = wrap.dataset.ajaxUrl;
+
+  btn.addEventListener('click', () => {
+    badge.textContent = '⏳'; badge.className = 'ao-save-status';
+    fetch(url, {
+      method: 'POST',
+      headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `status=${encodeURIComponent(sel.value)}&tracking_note=${encodeURIComponent(note.value)}`,
+    })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success) {
+        badge.textContent = '✓ Saved'; badge.className = 'ao-save-status ok';
+        // update status pill on card
+        const card = wrap.closest('.ao-card');
+        if (card) {
+          card.dataset.status = d.status;
+          const pill = card.querySelector('.dao-status');
+          if (pill) {
+            pill.className = `dao-status status-${d.status}`;
+            pill.textContent = d.status_label;
+          }
+        }
+      } else {
+        badge.textContent = '✗ Error'; badge.className = 'ao-save-status err';
+      }
+      setTimeout(() => badge.textContent = '', 2500);
+    })
+    .catch(() => { badge.textContent = '✗ Err'; badge.className = 'ao-save-status err'; });
+  });
+});
+
+// ── Kanban view ───────────────────────────────────────────────
+let kanbanBuilt = false;
+
+function buildKanban() {
+  if (kanbanBuilt) return;
+  kanbanBuilt = true;
+
+  const cards = document.querySelectorAll('#listView .ao-card');
+  const colMap = {};
+  STATUS_CHOICES.forEach(s => {
+    colMap[s.val] = document.getElementById('kanCol-' + s.val);
+  });
+
+  cards.forEach(card => {
+    const orderId  = card.dataset.orderId;
+    const status   = card.dataset.status;
+    const name     = card.querySelector('.ao-name')?.textContent.trim() || '';
+    const oid      = card.querySelector('.ao-order-id')?.textContent.trim() || orderId;
+    const total    = card.querySelector('.ao-total')?.textContent.trim() || '';
+    const date     = card.querySelector('.ao-date')?.textContent.trim() || '';
+    const items    = Array.from(card.querySelectorAll('.dao-item-tag')).map(t => t.textContent.trim()).join(', ');
+    const ajaxUrl  = card.querySelector('.ao-update-inline')?.dataset?.ajaxUrl || '';
+
+    const kc = document.createElement('div');
+    kc.className = 'kan-card';
+    kc.dataset.orderId = orderId;
+    kc.dataset.ajaxUrl = ajaxUrl;
+
+    const opts = STATUS_CHOICES.map(s =>
+      `<option value="${s.val}" ${s.val === status ? 'selected' : ''}>${s.label}</option>`
+    ).join('');
+
+    kc.innerHTML = `
+      <div class="kan-card-id">${oid}</div>
+      <div class="kan-card-name">${name}</div>
+      <div class="kan-card-total">${total.split('−')[0].trim()}</div>
+      <div class="kan-card-items">${items}</div>
+      <div class="kan-card-date">${date}</div>
+      <div class="kan-card-actions">
+        <select class="kan-quick-select">${opts}</select>
+        <button class="kan-save-btn">✓ Update Status</button>
+      </div>
+    `;
+
+    // Toggle expand on click
+    kc.addEventListener('click', e => {
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+      kc.classList.toggle('kan-open');
+    });
+
+    // AJAX save
+    kc.querySelector('.kan-save-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      const newStatus = kc.querySelector('.kan-quick-select').value;
+      fetch(ajaxUrl, {
+        method: 'POST',
+        headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `status=${encodeURIComponent(newStatus)}`,
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          // Move card to correct column
+          const destCol = document.getElementById('kanCol-' + d.status);
+          if (destCol && destCol !== kc.parentElement) {
+            kc.style.opacity = '0';
+            kc.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+              kc.remove();
+              kc.style.opacity = '1'; kc.style.transform = '';
+              destCol.appendChild(kc);
+              updateKanbanCounts();
+            }, 200);
+          }
+          kc.classList.remove('kan-open');
+        }
+      });
+    });
+
+    const col = colMap[status];
+    if (col) col.appendChild(kc);
+  });
+
+  updateKanbanCounts();
+}
+
+function updateKanbanCounts() {
+  STATUS_CHOICES.forEach(s => {
+    const col = document.getElementById('kanCol-' + s.val);
+    const cnt = document.getElementById('kanCount-' + s.val);
+    if (col && cnt) cnt.textContent = col.querySelectorAll('.kan-card').length;
+  });
+}
+
+function toggleView() {
+  const list   = document.getElementById('listView');
+  const kanban = document.getElementById('kanbanView');
+  const btn    = document.getElementById('viewToggle');
+
+  if (kanban.style.display === 'none') {
+    buildKanban();
+    list.style.display   = 'none';
+    kanban.style.display = 'block';
+    btn.textContent = '📋 List View';
+    btn.classList.add('active');
+  } else {
+    list.style.display   = 'block';
+    kanban.style.display = 'none';
+    btn.textContent = '🗂️ Kanban';
+    btn.classList.remove('active');
+  }
+}
+</script>
 {% endblock %}

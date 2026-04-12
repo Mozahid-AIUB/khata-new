@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Payment Failed{% endblock %}
+
+{% block content %}
+<section class="payment-result-section">
+    <div class="container" style="max-width:600px;padding:60px 16px;">
+
+        <div class="payment-result-card fail-card">
+            <div class="result-icon">
+                <div class="fail-x">✕</div>
+            </div>
+
+            <h1 class="result-title">পেমেন্ট ব্যর্থ হয়েছে</h1>
+            <p class="result-subtitle">{{ reason|default:"কোনো কারণে পেমেন্ট সম্পন্ন হয়নি।" }}</p>
+
+            {% if order %}
+            <div class="result-detail-box" style="border-color:rgba(244,114,182,0.15);">
+                <div class="result-row">
+                    <span>অর্ডার নম্বর</span>
+                    <strong>{{ order.order_id }}</strong>
+                </div>
+                <div class="result-row">
+                    <span>পরিমাণ</span>
+                    <strong>৳{{ order.total_amount|floatformat:0 }}</strong>
+                </div>
+                <div class="result-row">
+                    <span>স্ট্যাটাস</span>
+                    <span class="fail-pill">❌ Failed</span>
+                </div>
+            </div>
+            {% endif %}
+
+            <p class="result-note">
+                কার্ড বা ব্যালেন্স চেক করে আবার চেষ্টা করুন।<br>
+                সমস্যা থাকলে bKash/Nagad দিয়ে পেমেন্ট করুন।
+            </p>
+
+            <div class="result-actions">
+                <a href="{% url 'checkout' %}" class="btn btn-primary">
+                    🔄 আবার চেষ্টা করুন
+                </a>
+                <a href="https://wa.me/{{ site_settings.whatsapp_number }}" target="_blank"
+                   class="btn" style="background:linear-gradient(135deg,#25d366,#20ba60);color:white;border:none;">
+                    💬 WhatsApp সাহায্য
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<style>
+.payment-result-section {
+    min-height: 80vh; display: flex; align-items: center;
+    background: radial-gradient(ellipse at 50% 0%, rgba(244,114,182,0.05) 0%, transparent 70%);
+}
+.payment-result-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 48px 36px; text-align: center;
+    backdrop-filter: blur(12px);
+}
+.fail-card { border-color: rgba(244,114,182,0.25); }
+.fail-x {
+    font-size: 3.5rem; color: #f472b6; font-weight: 900;
+    width: 72px; height: 72px; border-radius: 50%;
+    border: 3px solid rgba(244,114,182,0.4);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    animation: shake 0.4s ease 0.2s;
+}
+@keyframes shake {
+    0%,100% { transform:translateX(0); }
+    25%      { transform:translateX(-6px); }
+    75%      { transform:translateX(6px); }
+}
+.result-title { font-size:1.8rem; font-weight:900; color:#e8ecf4; margin-bottom:8px; }
+.result-subtitle { color:#6b7a99; margin-bottom:28px; }
+.result-detail-box {
+    background:rgba(0,0,0,0.2); border:1px solid rgba(255,255,255,0.06);
+    border-radius:12px; padding:20px 24px; text-align:left; margin-bottom:24px;
+}
+.result-row {
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid rgba(255,255,255,0.05);
+    font-size:0.875rem; gap:12px;
+}
+.result-row:last-child { border-bottom:none; }
+.result-row span:first-child { color:#6b7a99; }
+.result-row strong { color:#e8ecf4; }
+.fail-pill {
+    background:rgba(244,114,182,0.12); color:#f472b6;
+    padding:2px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;
+}
+.result-note { font-size:0.82rem; color:#6b7a99; margin-bottom:28px; line-height:1.7; }
+.result-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+</style>
+{% endblock %}

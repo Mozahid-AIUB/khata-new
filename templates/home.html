@@ -368,6 +368,538 @@
     </div>
 </section>
 
+<!-- ══════════════════════════════════════════════════════
+     🔥 FLASH SALE PRODUCTS SECTION
+     এই section টা home.html এ featured products section এর আগে paste করো
+══════════════════════════════════════════════════════ -->
+
+<section class="flash-sale-section" id="flash-sale-products">
+    <div class="container">
+        <div class="section-head">
+            <p class="section-label">সীমিত সময়ের অফার</p>
+            <h2 class="section-title">
+                🔥 Flash Sale
+                {% if flash_sale %}
+                <span class="fs-live-badge">LIVE</span>
+                {% endif %}
+            </h2>
+            <div class="title-bar" style="background:linear-gradient(90deg,#f59e0b,#ef4444);"></div>
+            {% if flash_sale %}
+            <div class="fs-countdown-mini" id="fsCountdownMini" data-ends="{{ flash_sale.ends_at.isoformat }}">
+                <span class="fsc-label">শেষ হতে বাকি:</span>
+                <div class="fsc-boxes">
+                    <div class="fsc-box"><span id="fsc-h">00</span><small>ঘণ্টা</small></div>
+                    <div class="fsc-sep">:</div>
+                    <div class="fsc-box"><span id="fsc-m">00</span><small>মিনিট</small></div>
+                    <div class="fsc-sep">:</div>
+                    <div class="fsc-box"><span id="fsc-s">00</span><small>সেকেন্ড</small></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="fs-grid">
+            {% for product in flash_sale_products %}
+            <div class="fs-card">
+                <!-- Discount Badge -->
+                <div class="fs-badge">🔥 {{ product.discount_percent }}% OFF</div>
+
+                <!-- Image -->
+                <div class="fs-img-wrap">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" loading="lazy">
+                    {% else %}
+                    <div class="fs-img-placeholder"><span>📚</span></div>
+                    {% endif %}
+                    <div class="fs-overlay">
+                        <a href="{% url 'product_detail' product.slug %}" class="fs-view-btn">দেখুন →</a>
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="fs-body">
+                    <div class="fs-meta">
+                        <span class="level-badge">{{ product.level }}</span>
+                        {% if product.category %}
+                        <span class="category-tag">{{ product.category.name }}</span>
+                        {% endif %}
+                    </div>
+                    <h3 class="fs-name">{{ product.name }}</h3>
+
+                    <!-- Price -->
+                    <div class="fs-price-row">
+                        <span class="fs-price-old">৳{{ product.price }}</span>
+                        <span class="fs-price-new">৳{{ product.sale_price }}</span>
+                    </div>
+
+                    <!-- Stock bar -->
+                    {% if product.stock <= 10 %} <div class="fs-stock-bar">
+                        <div class="fs-stock-fill" style="width:{{ product.stock }}0%"></div>
+                </div>
+                <div class="fs-stock-label">মাত্র {{ product.stock }}টি বাকি!</div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="fs-actions">
+                    <button class="fs-cart-btn" onclick="fsAddToCart(event, {{ product.id }}, this)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <path d="M16 10a4 4 0 01-8 0" />
+                        </svg>
+                        কার্টে যোগ করুন
+                    </button>
+                    <a href="{% url 'product_detail' product.slug %}" class="fs-detail-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Sale ends timer -->
+            {% if product.sale_ends_at %}
+            <div class="fs-ends-label">
+                ⏰ Sale ends {{ product.sale_ends_at|date:"d M, H:i" }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="section-cta">
+        <a href="{% url 'products' %}?sort=sale" class="view-all-btn">
+            সব Flash Sale দেখুন
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+        </a>
+    </div>
+    </div>
+</section>
+
+<style>
+    /* ═══════════════════════════════════
+   🔥 FLASH SALE SECTION
+═══════════════════════════════════ */
+    .flash-sale-section {
+        padding: 80px 0;
+        background: linear-gradient(180deg, transparent 0%, rgba(245, 158, 11, 0.03) 50%, transparent 100%);
+        position: relative;
+    }
+
+    .flash-sale-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), transparent);
+    }
+
+    .fs-live-badge {
+        font-size: 0.65rem;
+        font-weight: 900;
+        background: #ef4444;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 20px;
+        margin-left: 10px;
+        vertical-align: middle;
+        animation: fsBlink 1.5s ease-in-out infinite;
+        letter-spacing: 1px;
+    }
+
+    @keyframes fsBlink {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    /* Mini countdown */
+    .fs-countdown-mini {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+    }
+
+    .fsc-label {
+        font-size: 0.82rem;
+        color: #f59e0b;
+        font-weight: 600;
+    }
+
+    .fsc-boxes {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .fsc-box {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 8px;
+        padding: 6px 12px;
+        text-align: center;
+        min-width: 52px;
+    }
+
+    .fsc-box span {
+        display: block;
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #f59e0b;
+        line-height: 1;
+    }
+
+    .fsc-box small {
+        font-size: 0.62rem;
+        color: #6b7a99;
+        display: block;
+        margin-top: 2px;
+    }
+
+    .fsc-sep {
+        font-size: 1.2rem;
+        font-weight: 900;
+        color: #f59e0b;
+        padding: 0 2px;
+    }
+
+    /* Flash Sale Grid */
+    .fs-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 20px;
+    }
+
+    .fs-card {
+        position: relative;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 18px;
+        overflow: hidden;
+        transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .fs-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(245, 158, 11, 0.5);
+        box-shadow: 0 16px 48px rgba(245, 158, 11, 0.15);
+    }
+
+    .fs-badge {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 3;
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        color: white;
+        font-size: 0.72rem;
+        font-weight: 900;
+        padding: 4px 12px;
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    /* Image */
+    .fs-img-wrap {
+        position: relative;
+        aspect-ratio: 4/3;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .fs-img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+
+    .fs-card:hover .fs-img-wrap img {
+        transform: scale(1.06);
+    }
+
+    .fs-img-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(239, 68, 68, 0.08));
+    }
+
+    .fs-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(7, 8, 15, 0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s;
+        backdrop-filter: blur(4px);
+    }
+
+    .fs-card:hover .fs-overlay {
+        opacity: 1;
+    }
+
+    .fs-view-btn {
+        padding: 8px 20px;
+        background: rgba(245, 158, 11, 0.2);
+        border: 1px solid rgba(245, 158, 11, 0.5);
+        color: #f59e0b;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background 0.2s;
+    }
+
+    .fs-view-btn:hover {
+        background: rgba(245, 158, 11, 0.35);
+        color: #f59e0b;
+    }
+
+    /* Body */
+    .fs-body {
+        padding: 16px;
+    }
+
+    .fs-meta {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+    }
+
+    .fs-name {
+        font-size: 0.92rem !important;
+        font-weight: 700;
+        color: #e8ecf4;
+        margin-bottom: 12px;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .fs-price-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .fs-price-old {
+        font-size: 0.85rem;
+        color: #6b7a99;
+        text-decoration: line-through;
+    }
+
+    .fs-price-new {
+        font-size: 1.4rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Stock bar */
+    .fs-stock-bar {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 6px;
+    }
+
+    .fs-stock-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #f59e0b, #ef4444);
+        border-radius: 4px;
+        animation: stockPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes stockPulse {
+
+        0%,
+        100% {
+            opacity: 1;
+        }
+
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    .fs-stock-label {
+        font-size: 0.72rem;
+        color: #f59e0b;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    /* Actions */
+    .fs-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .fs-cart-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.15));
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        color: #f59e0b;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: inherit;
+    }
+
+    .fs-cart-btn:hover {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(239, 68, 68, 0.25));
+        transform: translateY(-1px);
+    }
+
+    .fs-cart-btn.added {
+        background: rgba(0, 229, 176, 0.15);
+        border-color: rgba(0, 229, 176, 0.4);
+        color: #00e5b0;
+    }
+
+    .fs-detail-btn {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        color: #9aa5c4;
+        text-decoration: none;
+        transition: all 0.2s;
+        flex-shrink: 0;
+    }
+
+    .fs-detail-btn:hover {
+        background: rgba(91, 127, 255, 0.15);
+        border-color: rgba(91, 127, 255, 0.3);
+        color: #8ba4ff;
+    }
+
+    /* Sale ends label */
+    .fs-ends-label {
+        padding: 8px 16px;
+        background: rgba(245, 158, 11, 0.06);
+        border-top: 1px solid rgba(245, 158, 11, 0.15);
+        font-size: 0.72rem;
+        color: #f59e0b;
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .fs-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .fs-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    /* Flash Sale mini countdown */
+    (function () {
+        const el = document.getElementById('fsCountdownMini');
+        if (!el) return;
+        const end = new Date(el.dataset.ends);
+        function tick() {
+            const diff = end - new Date();
+            if (diff <= 0) { el.style.display = 'none'; return; }
+            const h = Math.floor(diff / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            document.getElementById('fsc-h').textContent = String(h).padStart(2, '0');
+            document.getElementById('fsc-m').textContent = String(m).padStart(2, '0');
+            document.getElementById('fsc-s').textContent = String(s).padStart(2, '0');
+        }
+        tick(); setInterval(tick, 1000);
+    })();
+
+    /* Flash Sale AJAX add to cart */
+    function fsAddToCart(e, productId, btn) {
+        e.preventDefault();
+        if (btn.classList.contains('added')) return;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '⏳ যোগ হচ্ছে...';
+        btn.disabled = true;
+
+        fetch(`/add-to-cart/${productId}/`, {
+            method: 'GET',
+            headers: { 'x-requested-with': 'XMLHttpRequest' }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    btn.innerHTML = '✅ কার্টে আছে';
+                    btn.classList.add('added');
+                    const badge = document.querySelector('.cart-nav-badge');
+                    if (badge) badge.textContent = data.cart_count;
+                    // Toast
+                    const t = document.createElement('div');
+                    t.textContent = `✅ কার্টে যোগ হয়েছে! (${data.cart_count})`;
+                    Object.assign(t.style, {
+                        position: 'fixed', top: '20px', right: '20px', zIndex: '9999',
+                        background: 'linear-gradient(135deg,#f59e0b,#ef4444)',
+                        color: 'white', padding: '12px 20px', borderRadius: '12px',
+                        fontWeight: '700', fontSize: '0.85rem',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                    });
+                    document.body.appendChild(t);
+                    setTimeout(() => t.remove(), 3000);
+                } else {
+                    btn.innerHTML = orig;
+                    btn.disabled = false;
+                    alert('❌ Stock শেষ!');
+                }
+            })
+            .catch(() => {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            });
+    }
+</script>
+
 
 <!-- ══════════════════════════════════════════════════════
      📚 FEATURED PRODUCTS
@@ -543,7 +1075,63 @@
 
 
 <!-- ══════════════════════════════════════════════════════
-     ⭐ TESTIMONIALS
+     🔴 LIVE ORDER FEED — Social Proof Ticker
+══════════════════════════════════════════════════════ -->
+<div class="live-order-bar" id="liveOrderBar">
+    <div class="lob-track" id="lobTrack">
+        <!-- Items injected by JS -->
+    </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════
+     🛡️ TRUST BADGES
+══════════════════════════════════════════════════════ -->
+<section class="trust-section">
+    <div class="container">
+        <div class="trust-grid">
+            <div class="trust-badge">
+                <div class="trust-icon">🔒</div>
+                <div class="trust-info">
+                    <strong>100% Secure</strong>
+                    <span>SSL encrypted payment</span>
+                </div>
+            </div>
+            <div class="trust-badge">
+                <div class="trust-icon">🚚</div>
+                <div class="trust-info">
+                    <strong>Fast Delivery</strong>
+                    <span>২-৩ কার্যদিবসে সারাদেশে</span>
+                </div>
+            </div>
+            <div class="trust-badge">
+                <div class="trust-icon">✍️</div>
+                <div class="trust-info">
+                    <strong>হাতে লেখা Quality</strong>
+                    <span>Professional Handwriting</span>
+                </div>
+            </div>
+            <div class="trust-badge">
+                <div class="trust-icon">💯</div>
+                <div class="trust-info">
+                    <strong>Satisfaction Guarantee</strong>
+                    <span>সমস্যা হলে ফেরত দেওয়া হয়</span>
+                </div>
+            </div>
+            <div class="trust-badge">
+                <div class="trust-icon">📱</div>
+                <div class="trust-info">
+                    <strong>২৪/৭ Support</strong>
+                    <span>WhatsApp এ সাথে আছি</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ══════════════════════════════════════════════════════
+     ⭐ TESTIMONIALS — Auto-Scroll Carousel
 ══════════════════════════════════════════════════════ -->
 <section class="testimonials-section">
     <div class="container">
@@ -552,33 +1140,102 @@
             <h2 class="section-title">⭐ Students বলছে</h2>
             <div class="title-bar"></div>
         </div>
-        <div class="testimonials-grid">
-            <div class="tcard">
-                <div class="tcard-stars">★★★★★</div>
-                <p class="tcard-text">"অসাধারণ service! Biology khata এত সুন্দর হয়েছে যে আমার teacher ভেবেছিলেন
-                    printed। Highly recommended!"</p>
-                <div class="tcard-author">
-                    <div class="tcard-avatar">RA</div>
-                    <div><strong>Rafiul Alam</strong><span>HSC 2025, Dhaka</span></div>
+
+        <!-- Carousel wrapper -->
+        <div class="tc-wrapper">
+            <div class="tc-track" id="tcTrack">
+                <!-- Card 1 -->
+                <div class="tcard">
+                    <div class="tcard-top">
+                        <div class="tcard-stars">★★★★★</div>
+                        <span class="tcard-verified">✓ Verified</span>
+                    </div>
+                    <p class="tcard-text">"অসাধারণ service! Biology khata এত সুন্দর হয়েছে যে আমার teacher ভেবেছিলেন printed। Highly recommended!"</p>
+                    <div class="tcard-author">
+                        <div class="tcard-avatar">RA</div>
+                        <div><strong>Rafiul Alam</strong><span>HSC 2025, Dhaka</span></div>
+                    </div>
+                </div>
+                <!-- Card 2 -->
+                <div class="tcard">
+                    <div class="tcard-top">
+                        <div class="tcard-stars">★★★★★</div>
+                        <span class="tcard-verified">✓ Verified</span>
+                    </div>
+                    <p class="tcard-text">"Physics diagram গুলো perfect। Delivery অনেক fast। দাম অনেক কম অন্যদের তুলনায়। আবার নেবো।"</p>
+                    <div class="tcard-author">
+                        <div class="tcard-avatar">TI</div>
+                        <div><strong>Tasnim Islam</strong><span>SSC 2025, Chittagong</span></div>
+                    </div>
+                </div>
+                <!-- Card 3 -->
+                <div class="tcard">
+                    <div class="tcard-top">
+                        <div class="tcard-stars">★★★★★</div>
+                        <span class="tcard-verified">✓ Verified</span>
+                    </div>
+                    <p class="tcard-text">"PCMB + ICT full set নিয়েছিলাম। সব subject এ perfect। আবার order করবো ইনশাআল্লাহ।"</p>
+                    <div class="tcard-author">
+                        <div class="tcard-avatar">MH</div>
+                        <div><strong>Mehedi Hasan</strong><span>HSC 2025, Sylhet</span></div>
+                    </div>
+                </div>
+                <!-- Card 4 -->
+                <div class="tcard">
+                    <div class="tcard-top">
+                        <div class="tcard-stars">★★★★★</div>
+                        <span class="tcard-verified">✓ Verified</span>
+                    </div>
+                    <p class="tcard-text">"Chemistry practical এর experiment গুলো এত clearly লেখা ছিল যে বুঝতেই কোনো সমস্যা হয়নি। 5 star!"</p>
+                    <div class="tcard-author">
+                        <div class="tcard-avatar">NJ</div>
+                        <div><strong>Nusrat Jahan</strong><span>SSC 2025, Rajshahi</span></div>
+                    </div>
+                </div>
+                <!-- Card 5 -->
+                <div class="tcard">
+                    <div class="tcard-top">
+                        <div class="tcard-stars">★★★★★</div>
+                        <span class="tcard-verified">✓ Verified</span>
+                    </div>
+                    <p class="tcard-text">"মাত্র ২ দিনে পেয়ে গেলাম! Package অনেক সুন্দর। Math lab book টা দেখে মা ও অবাক।"</p>
+                    <div class="tcard-author">
+                        <div class="tcard-avatar">SI</div>
+                        <div><strong>Sabbir Islam</strong><span>SSC 2025, Khulna</span></div>
+                    </div>
+                </div>
+                <!-- Card 6 -->
+                <div class="tcard">
+                    <div class="tcard-top">
+                        <div class="tcard-stars">★★★★★</div>
+                        <span class="tcard-verified">✓ Verified</span>
+                    </div>
+                    <p class="tcard-text">"আমি পুরো HSC batch কে recommend করেছি। সবাই order করেছে। আপনাদের service অতুলনীয়।"</p>
+                    <div class="tcard-author">
+                        <div class="tcard-avatar">FR</div>
+                        <div><strong>Farhan Reza</strong><span>HSC 2025, Sylhet</span></div>
+                    </div>
                 </div>
             </div>
-            <div class="tcard">
-                <div class="tcard-stars">★★★★★</div>
-                <p class="tcard-text">"Physics diagram গুলো perfect। Delivery অনেক fast। দাম অনেক কম অন্যদের
-                    তুলনায়। আবার নেবো।"</p>
-                <div class="tcard-author">
-                    <div class="tcard-avatar">TI</div>
-                    <div><strong>Tasnim Islam</strong><span>SSC 2025, Chittagong</span></div>
-                </div>
-            </div>
-            <div class="tcard">
-                <div class="tcard-stars">★★★★★</div>
-                <p class="tcard-text">"PCMB + ICT full set নিয়েছিলাম। সব subject এ perfect। আবার order করবো
-                    ইনশাআল্লাহ।"</p>
-                <div class="tcard-author">
-                    <div class="tcard-avatar">MH</div>
-                    <div><strong>Mehedi Hasan</strong><span>HSC 2025, Sylhet</span></div>
-                </div>
+
+            <!-- Nav arrows -->
+            <button class="tc-btn tc-prev" id="tcPrev" aria-label="Previous">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button class="tc-btn tc-next" id="tcNext" aria-label="Next">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+        </div>
+
+        <!-- Dots indicator -->
+        <div class="tc-dots" id="tcDots"></div>
+
+        <!-- Rating summary -->
+        <div class="tc-summary">
+            <div class="tc-rating-big">4.9</div>
+            <div>
+                <div class="tc-stars-row">★★★★★</div>
+                <div class="tc-rating-sub">১,২০০+ satisfied students</div>
             </div>
         </div>
     </div>
@@ -660,20 +1317,49 @@
 
 
 <script>
-    // 1. COUNTDOWN TIMER
+    // 1. COUNTDOWN TIMER — server-time synced ✅
     (function () {
-        const deadline = new Date('2026-06-15T23:59:59').getTime();
-        function update() {
-            const diff = deadline - Date.now();
-            if (diff <= 0) { document.querySelector('.countdown-strip').style.display = 'none'; return; }
-            const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000),
-                m = Math.floor((diff % 3600000) / 60000), s = Math.floor((diff % 60000) / 1000);
-            document.getElementById('cd-days').textContent = String(d).padStart(2, '0');
-            document.getElementById('cd-hours').textContent = String(h).padStart(2, '0');
-            document.getElementById('cd-mins').textContent = String(m).padStart(2, '0');
-            document.getElementById('cd-secs').textContent = String(s).padStart(2, '0');
+        // Server provides both current time & deadline in ms — eliminates client clock drift
+        const serverNowMs  = {{ server_now_ms|default:"Date.now()" }};
+        const flashEndsMs  = {{ flash_ends_ms|default:"null" }};
+        const clientNowMs  = Date.now();
+        const clockOffset  = serverNowMs - clientNowMs;  // compensate for drift
+
+        // Fallback deadline if no FlashSale in DB: use flash_ends_ms or hide
+        const deadline = flashEndsMs || null;
+        const strip = document.querySelector('.countdown-strip');
+
+        if (!deadline) { if (strip) strip.style.display = 'none'; }
+        else {
+            function update() {
+                const now  = Date.now() + clockOffset;  // server-adjusted time
+                const diff = deadline - now;
+                if (diff <= 0) { if (strip) strip.style.display = 'none'; return; }
+                const d = Math.floor(diff / 86400000),
+                      h = Math.floor((diff % 86400000) / 3600000),
+                      m = Math.floor((diff % 3600000) / 60000),
+                      s = Math.floor((diff % 60000) / 1000);
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v).padStart(2,'0'); };
+                set('cd-days', d); set('cd-hours', h); set('cd-mins', m); set('cd-secs', s);
+            }
+            update(); setInterval(update, 1000);
         }
-        update(); setInterval(update, 1000);
+
+        // Mini flash-sale countdown (same sync)
+        const miniEl = document.getElementById('fsCountdownMini');
+        if (miniEl && flashEndsMs) {
+            function updateMini() {
+                const now  = Date.now() + clockOffset;
+                const diff = flashEndsMs - now;
+                if (diff <= 0) { miniEl.style.display = 'none'; return; }
+                const h = Math.floor(diff / 3600000),
+                      m = Math.floor((diff % 3600000) / 60000),
+                      s = Math.floor((diff % 60000) / 1000);
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v).padStart(2,'0'); };
+                set('fsc-h', h); set('fsc-m', m); set('fsc-s', s);
+            }
+            updateMini(); setInterval(updateMini, 1000);
+        }
     })();
 
     // 2. PRICE CALCULATOR
@@ -736,17 +1422,125 @@
 
     // 5. SCROLL REVEAL
     (function () {
-        const els = document.querySelectorAll('.pcard,.feature-card,.tcard,.faq-item,.pay-step');
+        const els = document.querySelectorAll('.pcard,.feature-card,.tcard,.faq-item,.pay-step,.trust-badge');
         const io = new IntersectionObserver(entries => {
             entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); io.unobserve(e.target); } });
         }, { threshold: 0.12 });
         els.forEach(el => { el.classList.add('will-reveal'); io.observe(el); });
     })();
 
-    // 6. NAVBAR SCROLL
-    window.addEventListener('scroll', () => {
-        document.querySelector('.navbar')?.classList.toggle('scrolled', scrollY > 40);
-    }, { passive: true });
+    // 6. TESTIMONIALS CAROUSEL
+    (function () {
+        const track  = document.getElementById('tcTrack');
+        const dotsEl = document.getElementById('tcDots');
+        const prevBtn = document.getElementById('tcPrev');
+        const nextBtn = document.getElementById('tcNext');
+        if (!track) return;
+
+        const cards = Array.from(track.querySelectorAll('.tcard'));
+        const perView = window.innerWidth < 768 ? 1 : window.innerWidth < 1024 ? 2 : 3;
+        let current = 0;
+        const total = Math.ceil(cards.length / perView);
+
+        // Build dots
+        if (dotsEl) {
+            dotsEl.innerHTML = Array.from({length: total}, (_, i) =>
+                `<button class="tc-dot ${i===0?'active':''}" data-i="${i}" aria-label="Slide ${i+1}"></button>`
+            ).join('');
+            dotsEl.querySelectorAll('.tc-dot').forEach(d =>
+                d.addEventListener('click', () => goTo(+d.dataset.i))
+            );
+        }
+
+        function goTo(n) {
+            current = (n + total) % total;
+            const offset = current * (100 / perView) * perView;
+            track.style.transform = `translateX(-${current * (100 / total)}%)`;
+            track.style.transition = 'transform 0.45s cubic-bezier(0.25,0.46,0.45,0.94)';
+            dotsEl?.querySelectorAll('.tc-dot').forEach((d, i) =>
+                d.classList.toggle('active', i === current)
+            );
+        }
+
+        prevBtn?.addEventListener('click', () => goTo(current - 1));
+        nextBtn?.addEventListener('click', () => goTo(current + 1));
+
+        // Auto-advance every 4s
+        let autoTimer = setInterval(() => goTo(current + 1), 4000);
+        track.addEventListener('mouseenter', () => clearInterval(autoTimer));
+        track.addEventListener('mouseleave', () => { autoTimer = setInterval(() => goTo(current + 1), 4000); });
+
+        // Touch / swipe
+        let touchX = 0;
+        track.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+        track.addEventListener('touchend',   e => {
+            const diff = touchX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 40) goTo(diff > 0 ? current + 1 : current - 1);
+        });
+    })();
+
+    // 7. LIVE ORDER FEED — Social Proof Ticker
+    (function () {
+        const track = document.getElementById('lobTrack');
+        if (!track) return;
+
+        const names = [
+            'Rafiul A.','Tasnim I.','Mehedi H.','Nusrat J.','Sabbir I.','Farhan R.',
+            'Jannat K.','Ridoy M.','Puja D.','Ariful H.','Sumaiya B.','Rakib H.',
+            'Mithila R.','Toha S.','Lamia N.','Shahriar K.','Bristy P.','Adnan F.',
+        ];
+        const items = [
+            'SSC Physics Practical','HSC Chemistry Lab','Biology Practical Set',
+            'SSC Math Lab Book','HSC Physics Practical','ICT Lab Book',
+            'SSC Chemistry Practical','HSC Biology Set',
+        ];
+        const cities = ['ঢাকা','চট্টগ্রাম','সিলেট','রাজশাহী','খুলনা','বরিশাল','ময়মনসিংহ'];
+        const timeAgo = ['২ মিনিট','৫ মিনিট','৮ মিনিট','১৫ মিনিট','৩০ মিনিট'];
+
+        function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+        function buildItems() {
+            // 12 items, duplicated for infinite scroll
+            const set = Array.from({length: 12}, () => ({
+                name: rand(names), item: rand(items),
+                city: rand(cities), time: rand(timeAgo),
+            }));
+            return [...set, ...set]; // duplicate for seamless loop
+        }
+
+        function render(data) {
+            track.innerHTML = data.map(d => `
+                <div class="lob-item">
+                    <span class="lob-dot"></span>
+                    <span class="lob-name">${d.name}</span>
+                    <span class="lob-text">অর্ডার করলো</span>
+                    <strong class="lob-product">${d.item}</strong>
+                    <span class="lob-meta">${d.city} · ${d.time} আগে</span>
+                </div>
+            `).join('');
+        }
+
+        render(buildItems());
+
+        // Infinite scroll animation via CSS
+        const totalWidth = track.scrollWidth / 2;
+        let pos = 0;
+        let raf;
+        const speed = 0.5; // px per frame
+
+        function tick() {
+            pos += speed;
+            if (pos >= totalWidth) pos = 0;
+            track.style.transform = `translateX(-${pos}px)`;
+            raf = requestAnimationFrame(tick);
+        }
+        raf = requestAnimationFrame(tick);
+
+        // Pause on hover
+        const bar = document.getElementById('liveOrderBar');
+        bar?.addEventListener('mouseenter', () => cancelAnimationFrame(raf));
+        bar?.addEventListener('mouseleave', () => { raf = requestAnimationFrame(tick); });
+    })();
 </script>
 
 {% endblock %}

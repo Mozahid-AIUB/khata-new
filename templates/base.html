@@ -1,91 +1,339 @@
 <!DOCTYPE html>
 <html lang="bn">
+{% load static %}
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Buy SSC & HSC Practical Khata online in Bangladesh. High-quality handwritten khata with fast delivery.">
-    <meta name="keywords" content="practical khata, SSC khata, HSC khata, Bangladesh notes, handwritten khata">
+
+    <!-- ── Dynamic SEO ── -->
+    <title>{% block title %}SSC & HSC Practical Khata{% endblock %} — {{ site_settings.site_name }}</title>
+    <meta name="description" content="{% block meta_description %}{{ site_settings.meta_description }}{% endblock %}">
+    <meta name="keywords" content="{% block meta_keywords %}{{ site_settings.meta_keywords }}{% endblock %}">
     <meta name="author" content="Mozahidul Islam">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
 
-    <!-- Open Graph (Facebook / WhatsApp) -->
-    <meta property="og:title" content="Practical Khata - SSC & HSC">
-    <meta property="og:description" content="Best quality practical khata in Bangladesh">
-    <meta property="og:image" content="https://yourdomain.com/static/img/preview.png">
-    <meta property="og:url" content="https://yourdomain.com">
+    <!-- ── Open Graph ── -->
+    <meta property="og:title"
+        content="{% block og_title %}{% block title2 %}SSC & HSC Practical Khata{% endblock %}{% endblock %}">
+    <meta property="og:description" content="{{ site_settings.meta_description }}">
+    <meta property="og:image"
+        content="{% if site_settings.og_image %}{{ request.scheme }}://{{ request.get_host }}{{ site_settings.og_image.url }}{% else %}{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.png' %}{% endif %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ site_settings.site_name }}">
 
-    <!-- Responsive -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}SSC & HSC Practical Khata{% endblock %}</title>
+    <!-- ── Twitter Card ── -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}SSC & HSC Practical Khata{% endblock %}">
+    <meta name="twitter:description" content="{{ site_settings.meta_description }}">
+
+    <!-- ── Fonts ── -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Noto+Sans+Bengali:wght@400;500;700&display=swap"
         rel="stylesheet">
+
+    <!-- ── CSS ── -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
 
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6">
     {% block extra_css %}{% endblock %}
+
+    {# ── Google Analytics GA4 (only if ID set in settings) ── #}
+    {% if GA_MEASUREMENT_ID %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA_MEASUREMENT_ID }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ GA_MEASUREMENT_ID }}', {
+        'anonymize_ip': true,
+        'cookie_flags': 'SameSite=None;Secure'
+      });
+    </script>
+    {% endif %}
 </head>
 
 <body>
     <div class="particles-bg"></div>
 
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'home' %}">
-                <i class="fas fa-book-open"></i><span>Practical Khata</span>
-            </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center gap-1">
-                    <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">হোম</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'products' %}">খাতা</a></li>
-                    <li class="nav-item">
-                        <a class="nav-link d-flex align-items-center gap-1" href="{% url 'cart' %}">
-                            <i class="fas fa-shopping-bag" style="font-size:0.85rem;"></i> কার্ট
-                            {% if cart_count and cart_count > 0 %}
-                            <span
-                                style="background:linear-gradient(135deg,#f472b6,#ec4899);color:white;font-size:0.6rem;font-weight:700;padding:1px 5px;border-radius:8px;line-height:1.6;">{{
-                                cart_count }}</span>
-                            {% endif %}
-                        </a>
-                    </li>
-                    {% if request.user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'dashboard' %}">👤 {{
-                            request.user.username|truncatechars:10 }}</a></li>
-                    {% if request.user.is_staff %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">⚙️ Admin</a>
-                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end"
-                            style="background:rgba(10,14,26,0.98);border:1px solid rgba(91,127,255,0.2);border-radius:12px;">
-                            <li><a class="dropdown-item" href="{% url 'manage_products' %}">📦 Products</a></li>
-                            <li><a class="dropdown-item" href="{% url 'admin_orders' %}">📋 Orders</a></li>
-                            <li><a class="dropdown-item" href="{% url 'admin_reviews' %}">⭐ Reviews</a></li>
-                            <li><a class="dropdown-item" href="{% url 'manage_coupons' %}">🎟️ Coupons</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}"
-                            style="color:#f472b6 !important;">Logout</a></li>
-                    {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'register' %}"
-                            style="background:rgba(91,127,255,0.12)!important;border:1px solid rgba(91,127,255,0.25)!important;color:#8ba4ff!important;">Register</a>
-                    </li>
-                    {% endif %}
-                </ul>
+    <!-- ══════════════════════════════════════
+     🔥 FLASH SALE BANNER (dynamic)
+════════════════════════════════════════ -->
+    {% if flash_sale and flash_sale.is_live %}
+    <div class="flash-banner" id="flashBanner">
+        <div class="flash-banner-inner">
+            <span class="flash-fire">🔥</span>
+            <span class="flash-text">{{ flash_sale.title }}</span>
+            <div class="flash-timer" id="flashTimer" data-ends="{{ flash_sale.ends_at.isoformat }}"></div>
+            <a href="{{ flash_sale.cta_url }}" class="flash-cta">{{ flash_sale.cta_text }}</a>
+            <button class="flash-close" onclick="document.getElementById('flashBanner').remove()">×</button>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ══════════════════════════════════════
+     🧭 NAVBAR v2 — Premium Gaming Dark
+════════════════════════════════════════ -->
+    <nav class="pk-nav" id="mainNav" role="navigation" aria-label="Main Navigation">
+
+        <!-- ── Search overlay (full screen) ── -->
+        <div class="pk-search-overlay" id="pkSearchOverlay">
+            <div class="pk-search-inner">
+                <form action="{% url 'search_products' %}" method="GET" class="pk-search-form">
+                    <svg class="pk-search-ico" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input type="text" name="q" id="pkSearchInput" class="pk-search-input"
+                        placeholder="খাতা খুঁজুন... (যেমন: SSC Physics, HSC Biology)"
+                        autocomplete="off" spellcheck="false">
+                    <button type="button" class="pk-search-close" id="pkSearchClose" aria-label="Close search">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </form>
+                <div class="pk-search-hints">
+                    <span class="pk-hint-label">জনপ্রিয়:</span>
+                    <a href="{% url 'search_products' %}?q=SSC" class="pk-hint-chip">SSC Physics</a>
+                    <a href="{% url 'search_products' %}?q=HSC" class="pk-hint-chip">HSC Chemistry</a>
+                    <a href="{% url 'search_products' %}?q=Biology" class="pk-hint-chip">Biology Practical</a>
+                    <a href="{% url 'search_products' %}?q=Math" class="pk-hint-chip">Math Lab</a>
+                </div>
             </div>
         </div>
+
+        <!-- ── Mobile drawer overlay ── -->
+        <div class="pk-mob-overlay" id="pkMobOverlay"></div>
+
+        <!-- ── Main bar ── -->
+        <div class="pk-nav-bar">
+            <div class="container pk-nav-container">
+
+                <!-- Logo -->
+                <a class="pk-logo" href="{% url 'home' %}" aria-label="{{ site_settings.site_name }}">
+                    <div class="pk-logo-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                    </div>
+                    <div class="pk-logo-text">
+                        <span class="pk-logo-name">{{ site_settings.site_name }}</span>
+                        <span class="pk-logo-tagline">SSC &amp; HSC Practical</span>
+                    </div>
+                    <div class="pk-logo-glow"></div>
+                </a>
+
+                <!-- Desktop nav links -->
+                <ul class="pk-nav-links" role="list">
+                    <li>
+                        <a href="{% url 'home' %}" class="pk-link {% if request.resolver_match.url_name == 'home' %}pk-link--active{% endif %}">
+                            হোম
+                        </a>
+                    </li>
+                    <!-- Khata mega-menu trigger -->
+                    <li class="pk-mega-parent">
+                        <a href="{% url 'products' %}" class="pk-link pk-link--has-arrow {% if 'product' in request.resolver_match.url_name %}pk-link--active{% endif %}">
+                            খাতা
+                            <svg class="pk-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        </a>
+                        <!-- Mega Menu -->
+                        <div class="pk-mega-menu" role="menu">
+                            <div class="pk-mega-inner">
+                                <div class="pk-mega-col">
+                                    <p class="pk-mega-label">SSC খাতা</p>
+                                    <a href="{% url 'products' %}?category=ssc-physics" class="pk-mega-link">
+                                        <span class="pk-mega-icon">⚡</span>
+                                        <span>Physics Practical</span>
+                                    </a>
+                                    <a href="{% url 'products' %}?category=ssc-chemistry" class="pk-mega-link">
+                                        <span class="pk-mega-icon">🧪</span>
+                                        <span>Chemistry Practical</span>
+                                    </a>
+                                    <a href="{% url 'products' %}?category=ssc-biology" class="pk-mega-link">
+                                        <span class="pk-mega-icon">🌿</span>
+                                        <span>Biology Practical</span>
+                                    </a>
+                                    <a href="{% url 'products' %}?category=ssc-math" class="pk-mega-link">
+                                        <span class="pk-mega-icon">📐</span>
+                                        <span>Math Lab Book</span>
+                                    </a>
+                                </div>
+                                <div class="pk-mega-col">
+                                    <p class="pk-mega-label">HSC খাতা</p>
+                                    <a href="{% url 'products' %}?category=hsc-physics" class="pk-mega-link">
+                                        <span class="pk-mega-icon">🔬</span>
+                                        <span>Physics Practical</span>
+                                    </a>
+                                    <a href="{% url 'products' %}?category=hsc-chemistry" class="pk-mega-link">
+                                        <span class="pk-mega-icon">⚗️</span>
+                                        <span>Chemistry Practical</span>
+                                    </a>
+                                    <a href="{% url 'products' %}?category=hsc-biology" class="pk-mega-link">
+                                        <span class="pk-mega-icon">🧬</span>
+                                        <span>Biology Practical</span>
+                                    </a>
+                                    <a href="{% url 'products' %}?category=hsc-ict" class="pk-mega-link">
+                                        <span class="pk-mega-icon">💻</span>
+                                        <span>ICT Lab Book</span>
+                                    </a>
+                                </div>
+                                <div class="pk-mega-promo">
+                                    <div class="pk-mega-promo-badge">🔥 Sale চলছে</div>
+                                    <p class="pk-mega-promo-text">সব খাতায় বিশেষ ছাড়</p>
+                                    <a href="{% url 'products' %}" class="pk-mega-promo-btn">সব দেখুন →</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li>
+                        <a href="#" class="pk-link"
+                           onclick="event.preventDefault(); const t=document.getElementById('trackInput'); if(t){t.scrollIntoView({behavior:'smooth'}); t.focus();}else{const id=prompt('তোমার Order ID লিখো:'); if(id) window.location.assign('/order/'+id+'/tracking/');}">
+                            ট্র্যাক
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Right actions -->
+                <div class="pk-nav-actions">
+
+                    <!-- Search button -->
+                    <button class="pk-icon-btn" id="pkSearchBtn" aria-label="Search" title="খাতা খুঁজুন">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    </button>
+
+                    <!-- Cart button -->
+                    <a class="pk-cart-btn" href="{% url 'cart' %}" aria-label="Cart">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                        <span class="pk-cart-label">কার্ট</span>
+                        {% if cart_count and cart_count > 0 %}
+                        <span class="pk-cart-badge cart-nav-badge">{{ cart_count }}</span>
+                        {% else %}
+                        <span class="pk-cart-badge cart-nav-badge" style="display:none;">0</span>
+                        {% endif %}
+                    </a>
+
+                    <!-- User menu / Auth -->
+                    {% if request.user.is_authenticated %}
+                    <div class="pk-user-menu">
+                        <button class="pk-user-btn" id="pkUserBtn" aria-label="User menu">
+                            <div class="pk-avatar">{{ request.user.username|slice:":1"|upper }}</div>
+                            <svg class="pk-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        <div class="pk-user-dropdown" id="pkUserDropdown">
+                            <div class="pk-user-header">
+                                <div class="pk-avatar pk-avatar-lg">{{ request.user.username|slice:":1"|upper }}</div>
+                                <div>
+                                    <p class="pk-user-name">{{ request.user.username }}</p>
+                                    <p class="pk-user-role">{% if request.user.is_staff %}Admin{% else %}Customer{% endif %}</p>
+                                </div>
+                            </div>
+                            <div class="pk-user-links">
+                                <a href="{% url 'dashboard' %}" class="pk-user-link">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                                    Dashboard
+                                </a>
+                                <a href="{% url 'cart' %}" class="pk-user-link">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+                                    আমার কার্ট
+                                </a>
+                                {% if request.user.is_staff %}
+                                <div class="pk-user-divider"></div>
+                                <p class="pk-user-section">Admin Panel</p>
+                                <a href="{% url 'admin_dashboard' %}" class="pk-user-link">🚀 Dashboard 2.0</a>
+                                <a href="{% url 'manage_products' %}" class="pk-user-link">📦 Products</a>
+                                <a href="{% url 'admin_orders' %}" class="pk-user-link">📋 Orders</a>
+                                <a href="{% url 'admin_reviews' %}" class="pk-user-link">⭐ Reviews</a>
+                                <a href="{% url 'manage_coupons' %}" class="pk-user-link">🎟️ Coupons</a>
+                                {% endif %}
+                                <div class="pk-user-divider"></div>
+                                <a href="{% url 'logout' %}" class="pk-user-link pk-user-link--danger">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                                    Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <a href="{% url 'login' %}" class="pk-auth-link">Login</a>
+                    <a href="{% url 'register' %}" class="pk-auth-btn">Register</a>
+                    {% endif %}
+
+                    <!-- Mobile hamburger -->
+                    <button class="pk-hamburger" id="pkHamburger" aria-label="Menu" aria-expanded="false">
+                        <span class="pk-ham-line"></span>
+                        <span class="pk-ham-line"></span>
+                        <span class="pk-ham-line"></span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── Mobile Drawer ── -->
+        <div class="pk-mob-drawer" id="pkMobDrawer" aria-hidden="true">
+            <div class="pk-mob-header">
+                <a class="pk-logo" href="{% url 'home' %}">
+                    <div class="pk-logo-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    </div>
+                    <span class="pk-logo-name">{{ site_settings.site_name }}</span>
+                </a>
+                <button class="pk-icon-btn" id="pkMobClose" aria-label="Close menu">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+
+            <!-- Mobile search -->
+            <form action="{% url 'search_products' %}" method="GET" class="pk-mob-search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                <input type="text" name="q" placeholder="খাতা খুঁজুন..." class="pk-mob-search-input">
+            </form>
+
+            <nav class="pk-mob-nav">
+                <a href="{% url 'home' %}" class="pk-mob-link {% if request.resolver_match.url_name == 'home' %}pk-mob-link--active{% endif %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    হোম
+                </a>
+                <a href="{% url 'products' %}" class="pk-mob-link {% if 'product' in request.resolver_match.url_name %}pk-mob-link--active{% endif %}">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    সব খাতা
+                </a>
+                <a href="{% url 'cart' %}" class="pk-mob-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                    কার্ট
+                    {% if cart_count and cart_count > 0 %}
+                    <span class="pk-mob-badge">{{ cart_count }}</span>
+                    {% endif %}
+                </a>
+                {% if request.user.is_authenticated %}
+                <a href="{% url 'dashboard' %}" class="pk-mob-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    {{ request.user.username }}
+                </a>
+                {% if request.user.is_staff %}
+                <div class="pk-mob-section">Admin</div>
+                <a href="{% url 'admin_dashboard' %}" class="pk-mob-link pk-mob-link--sub">🚀 Dashboard</a>
+                <a href="{% url 'manage_products' %}" class="pk-mob-link pk-mob-link--sub">📦 Products</a>
+                <a href="{% url 'admin_orders' %}" class="pk-mob-link pk-mob-link--sub">📋 Orders</a>
+                <a href="{% url 'manage_coupons' %}" class="pk-mob-link pk-mob-link--sub">🎟️ Coupons</a>
+                {% endif %}
+                <a href="{% url 'logout' %}" class="pk-mob-link pk-mob-link--danger">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    Logout
+                </a>
+                {% else %}
+                <div class="pk-mob-auth">
+                    <a href="{% url 'login' %}" class="pk-mob-auth-link">Login</a>
+                    <a href="{% url 'register' %}" class="pk-mob-auth-btn">Register</a>
+                </div>
+                {% endif %}
+            </nav>
+        </div>
+
     </nav>
 
+    <!-- ── Django Messages ── -->
     {% if messages %}
-    <div class="container mt-3">
+    <div class="container mt-3" id="django-messages">
         {% for message in messages %}
         <div class="alert alert-dismissible fade show"
             style="background:rgba(91,127,255,0.1);border:1px solid rgba(91,127,255,0.3);color:#8ba4ff;border-radius:10px;font-size:0.875rem;">
@@ -96,34 +344,1411 @@
     </div>
     {% endif %}
 
+    <!-- ── Page Content ── -->
     {% block content %}{% endblock %}
 
-    <a href="https://wa.me/8801707591255" class="wa-float" target="_blank" title="WhatsApp">
+    <!-- ══════════════════════════════════════
+     🦶 FOOTER
+════════════════════════════════════════ -->
+    <footer class="mt-5 py-5" style="border-top:1px solid rgba(255,255,255,0.07);background:rgba(7,8,15,0.98);">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div style="font-size:1.1rem;font-weight:800;color:#e8ecf4;margin-bottom:8px;">
+                        📚 {{ site_settings.site_name }}
+                    </div>
+                    <p style="font-size:0.82rem;color:#6b7a99;line-height:1.7;">
+                        {{ site_settings.tagline }}। বাংলাদেশের সেরা মানের হাতে লেখা Practical Khata।
+                    </p>
+                </div>
+                <div class="col-md-4">
+                    <div
+                        style="font-size:0.8rem;font-weight:700;color:#8ba4ff;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+                        Quick Links</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        <a href="{% url 'home' %}" style="font-size:0.82rem;color:#6b7a99;text-decoration:none;">🏠
+                            হোম</a>
+                        <a href="{% url 'products' %}" style="font-size:0.82rem;color:#6b7a99;text-decoration:none;">📚
+                            সব খাতা</a>
+                        <a href="{% url 'cart' %}" style="font-size:0.82rem;color:#6b7a99;text-decoration:none;">🛒
+                            কার্ট</a>
+                        <a href="{% url 'login' %}" style="font-size:0.82rem;color:#6b7a99;text-decoration:none;">👤
+                            Login</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div
+                        style="font-size:0.8rem;font-weight:700;color:#8ba4ff;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;">
+                        যোগাযোগ</div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <a href="https://wa.me/{{ site_settings.whatsapp_number }}" target="_blank"
+                            style="font-size:0.82rem;color:#25d366;text-decoration:none;">
+                            <i class="fab fa-whatsapp"></i> {{ site_settings.whatsapp_number|slice:"2:" }}
+                        </a>
+                        {% if site_settings.bkash_number %}
+                        <span style="font-size:0.82rem;color:#6b7a99;">
+                            💳 bKash: {{ site_settings.bkash_number }}
+                        </span>
+                        {% endif %}
+                        {% if site_settings.nagad_number %}
+                        <span style="font-size:0.82rem;color:#6b7a99;">
+                            💳 Nagad: {{ site_settings.nagad_number }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div
+                style="border-top:1px solid rgba(255,255,255,0.05);margin-top:24px;padding-top:16px;text-align:center;">
+                <p style="font-size:0.78rem;color:#6b7a99;margin:0;">
+                    © 2026 {{ site_settings.site_name }} — Made with ❤️ in Bangladesh
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ══════════════════════════════════════
+     📱 WHATSAPP FLOAT BUTTON
+════════════════════════════════════════ -->
+    <a href="https://wa.me/{{ site_settings.whatsapp_number }}" class="wa-float" target="_blank" rel="noopener"
+        title="WhatsApp এ মেসেজ করো" aria-label="WhatsApp">
         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white">
             <path
                 d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
         </svg>
     </a>
 
-    <footer class="mt-5 py-4" style="border-top:1px solid rgba(255,255,255,0.07);background:rgba(7,8,15,0.98);">
-        <div class="container text-center">
-            <p style="font-size:0.82rem;color:#6b7a99;margin-bottom:4px;">© 2026 SSC & HSC Practical Khata</p>
-            <p style="font-size:0.82rem;color:#6b7a99;margin:0;"><i class="fab fa-whatsapp" style="color:#25d366;"></i>
-                01707591255</p>
+    <!-- ══════════════════════════════════════
+     🤖 AI CHAT WIDGET
+════════════════════════════════════════ -->
+    {% if chat_enabled %}
+    <div class="ai-chat-widget" id="aiChatWidget">
+
+        <!-- Toggle Button -->
+        <button class="ai-chat-toggle" id="aiChatToggle" aria-label="Chat">
+            <span class="ai-chat-icon-open">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+            </span>
+            <span class="ai-chat-icon-close" style="display:none;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </span>
+            <span class="ai-chat-badge" id="aiChatBadge">1</span>
+        </button>
+
+        <!-- Chat Box -->
+        <div class="ai-chat-box" id="aiChatBox">
+            <!-- Header -->
+            <div class="ai-chat-header">
+                <div class="ai-chat-avatar">🤖</div>
+                <div>
+                    <div class="ai-chat-title">Khata Assistant</div>
+                    <div class="ai-chat-status">
+                        <span class="ai-online-dot"></span> Online
+                    </div>
+                </div>
+                <button class="ai-chat-close-btn" id="aiChatCloseBtn" aria-label="Close">×</button>
+            </div>
+
+            <!-- Messages -->
+            <div class="ai-chat-messages" id="aiChatMessages">
+                <div class="ai-msg ai-msg-bot">
+                    <div class="ai-msg-bubble">{{ chat_welcome_msg }}</div>
+                    <div class="ai-msg-time">এখন</div>
+                </div>
+                <!-- Quick Replies -->
+                <div class="ai-quick-replies" id="aiQuickReplies">
+                    <button class="ai-quick-btn" onclick="sendQuick('ডেলিভারি চার্জ কত?')">🚚 ডেলিভারি</button>
+                    <button class="ai-quick-btn" onclick="sendQuick('দাম কত?')">💰 দাম</button>
+                    <button class="ai-quick-btn" onclick="sendQuick('পেমেন্ট কীভাবে করবো?')">💳 Payment</button>
+                    <button class="ai-quick-btn" onclick="sendQuick('অর্ডার track করবো কীভাবে?')">📦 Tracking</button>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="ai-chat-input-area">
+                <input type="text" class="ai-chat-input" id="aiChatInput" placeholder="প্রশ্ন করুন..." maxlength="300"
+                    autocomplete="off">
+                <button class="ai-chat-send" id="aiChatSend" aria-label="Send">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
         </div>
-    </footer>
+    </div>
+    {% endif %}
 
+    <!-- ══════════════════════════════════════
+     🛒 CART DRAWER
+════════════════════════════════════════ -->
+    <div class="cart-drawer-overlay" id="cartDrawerOverlay"></div>
+    <aside class="cart-drawer" id="cartDrawer" aria-label="Cart" role="dialog">
+
+        <!-- Drawer Header -->
+        <div class="cart-drawer-header">
+            <div class="cart-drawer-title">
+                <i class="fas fa-shopping-bag" style="color:#5b7fff;"></i>
+                আমার কার্ট
+                <span class="cart-drawer-badge" id="cartDrawerBadge" style="display:none;">0</span>
+            </div>
+            <button class="cart-drawer-close" id="cartDrawerClose" aria-label="Close cart">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Item count -->
+        <div class="cart-drawer-meta" id="cartDrawerCount"></div>
+
+        <!-- Scrollable items -->
+        <div class="cart-drawer-body" id="cartDrawerBody">
+            <div class="drawer-loading">
+                <div class="drawer-spinner"></div>
+            </div>
+        </div>
+
+        <!-- Footer: total + checkout -->
+        <div class="cart-drawer-footer">
+            <div class="cart-drawer-total-row">
+                <span>মোট</span>
+                <span class="cart-drawer-total-amt" id="cartDrawerTotal">৳0</span>
+            </div>
+            <div style="font-size:0.72rem;color:#6b7a99;margin-bottom:10px;">
+                ডেলিভারি চার্জ সহ
+            </div>
+            <a href="{% url 'checkout' %}" class="btn btn-primary w-100" style="font-weight:700;letter-spacing:0.5px;">
+                চেকআউট করুন →
+            </a>
+            <a href="{% url 'cart' %}" class="cart-drawer-view-all cart-page-link">
+                সম্পূর্ণ কার্ট দেখুন
+            </a>
+        </div>
+    </aside>
+
+    <style>
+        /* ─── Cart Drawer ─────────────────────────────────── */
+        .cart-drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 9998;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .cart-drawer-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .cart-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: min(380px, 100vw);
+            height: 100vh;
+            background: #0d1120;
+            border-left: 1px solid rgba(91, 127, 255, 0.18);
+            box-shadow: -8px 0 40px rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .cart-drawer.open {
+            transform: translateX(0);
+        }
+
+        .cart-drawer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 20px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .cart-drawer-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #e8ecf4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cart-drawer-badge {
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+            color: white;
+            font-size: 0.65rem;
+            font-weight: 700;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cart-drawer-close {
+            background: rgba(255, 255, 255, 0.06);
+            border: none;
+            color: #6b7a99;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .cart-drawer-close:hover {
+            background: rgba(244, 114, 182, 0.15);
+            color: #f472b6;
+        }
+
+        .cart-drawer-meta {
+            font-size: 0.75rem;
+            color: #6b7a99;
+            padding: 8px 20px 4px;
+        }
+
+        .cart-drawer-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(91, 127, 255, 0.3) transparent;
+        }
+
+        .cart-drawer-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .cart-drawer-body::-webkit-scrollbar-thumb {
+            background: rgba(91, 127, 255, 0.3);
+            border-radius: 2px;
+        }
+
+        /* Drawer item */
+        .drawer-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background 0.2s;
+        }
+
+        .drawer-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .drawer-item-img {
+            width: 56px;
+            height: 56px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drawer-item-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .drawer-item-img-placeholder {
+            font-size: 1.5rem;
+        }
+
+        .drawer-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .drawer-item-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #e8ecf4;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .drawer-item-price {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #00e5b0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .drawer-sale-tag {
+            font-size: 0.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f472b6, #ec4899);
+            color: white;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+
+        .drawer-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .drawer-qty-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(91, 127, 255, 0.1);
+            border: 1px solid rgba(91, 127, 255, 0.25);
+            color: #8ba4ff;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .drawer-qty-btn:hover {
+            background: rgba(91, 127, 255, 0.25);
+        }
+
+        .drawer-qty-num {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #e8ecf4;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .drawer-remove-btn {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background: rgba(244, 114, 182, 0.08);
+            border: 1px solid rgba(244, 114, 182, 0.15);
+            color: #f472b6;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .drawer-remove-btn:hover {
+            background: rgba(244, 114, 182, 0.2);
+        }
+
+        /* Empty / Loading states */
+        .drawer-loading,
+        .drawer-empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 20px;
+            color: #6b7a99;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .drawer-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid rgba(91, 127, 255, 0.15);
+            border-top-color: #5b7fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Footer */
+        .cart-drawer-footer {
+            padding: 16px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .cart-drawer-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .cart-drawer-total-row span:first-child {
+            font-size: 0.875rem;
+            color: #9aa5c4;
+            font-weight: 600;
+        }
+
+        .cart-drawer-total-amt {
+            font-size: 1.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00e5b0, #5b7fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .cart-drawer-view-all {
+            display: block;
+            text-align: center;
+            font-size: 0.78rem;
+            color: #6b7a99;
+            margin-top: 10px;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .cart-drawer-view-all:hover {
+            color: #8ba4ff;
+        }
+    </style>
+
+    <!-- ══════════════════════════════════════
+     📜 SCRIPTS
+════════════════════════════════════════ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    {% load static %}
-    <script src="{% static 'js/animations.js' %}?v=6"></script>
-    <script src="{% static 'js/cart.js' %}?v=6"></script>
-    <script>
-        window.addEventListener('scroll', () => { document.querySelector('.navbar')?.classList.toggle('scrolled', scrollY > 40); }, { passive: true });
-        document.querySelectorAll('img').forEach(img => { img.style.transition = 'opacity 0.4s ease'; if (img.complete) img.style.opacity = 1; else { img.style.opacity = 0; img.onload = () => img.style.opacity = 1; } });
+    <script src="{% static 'js/animations.js' %}?v=7"></script>
+    <script src="{% static 'js/cart.js' %}?v=7"></script>
 
+    <script>
+        // ── Navbar v2 Controller ──
+        (function() {
+            const nav         = document.getElementById('mainNav');
+            const searchBtn   = document.getElementById('pkSearchBtn');
+            const searchOverlay = document.getElementById('pkSearchOverlay');
+            const searchClose = document.getElementById('pkSearchClose');
+            const searchInput = document.getElementById('pkSearchInput');
+            const hamburger   = document.getElementById('pkHamburger');
+            const mobDrawer   = document.getElementById('pkMobDrawer');
+            const mobOverlay  = document.getElementById('pkMobOverlay');
+            const mobClose    = document.getElementById('pkMobClose');
+            const userBtn     = document.getElementById('pkUserBtn');
+            const userDrop    = document.getElementById('pkUserDropdown');
+
+            // Scroll: glassmorphism intensify
+            let lastY = 0;
+            window.addEventListener('scroll', () => {
+                const y = window.scrollY;
+                nav?.classList.toggle('pk-nav--scrolled', y > 40);
+                nav?.classList.toggle('pk-nav--hidden', y > lastY + 80 && y > 200);
+                nav?.classList.toggle('pk-nav--visible', y < lastY);
+                lastY = y;
+            }, { passive: true });
+
+            // Search overlay
+            function openSearch() {
+                searchOverlay?.classList.add('open');
+                document.body.style.overflow = 'hidden';
+                setTimeout(() => searchInput?.focus(), 120);
+            }
+            function closeSearch() {
+                searchOverlay?.classList.remove('open');
+                document.body.style.overflow = '';
+            }
+            searchBtn?.addEventListener('click', openSearch);
+            searchClose?.addEventListener('click', closeSearch);
+            searchOverlay?.addEventListener('click', e => {
+                if (e.target === searchOverlay) closeSearch();
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') { closeSearch(); closeMob(); }
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); openSearch(); }
+            });
+
+            // Mobile drawer
+            function openMob() {
+                mobDrawer?.classList.add('open');
+                mobOverlay?.classList.add('open');
+                hamburger?.classList.add('open');
+                hamburger?.setAttribute('aria-expanded', 'true');
+                mobDrawer?.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+            function closeMob() {
+                mobDrawer?.classList.remove('open');
+                mobOverlay?.classList.remove('open');
+                hamburger?.classList.remove('open');
+                hamburger?.setAttribute('aria-expanded', 'false');
+                mobDrawer?.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+            hamburger?.addEventListener('click', openMob);
+            mobClose?.addEventListener('click', closeMob);
+            mobOverlay?.addEventListener('click', closeMob);
+
+            // User dropdown
+            userBtn?.addEventListener('click', e => {
+                e.stopPropagation();
+                const isOpen = userDrop?.classList.toggle('open');
+                userBtn?.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+            document.addEventListener('click', () => userDrop?.classList.remove('open'));
+
+            // Mega menu: delay close on mouseleave to prevent flicker
+            document.querySelectorAll('.pk-mega-parent').forEach(item => {
+                let timer;
+                item.addEventListener('mouseenter', () => { clearTimeout(timer); item.classList.add('open'); });
+                item.addEventListener('mouseleave', () => { timer = setTimeout(() => item.classList.remove('open'), 120); });
+            });
+        })();
+
+        // ── Image lazy load ──
+        document.querySelectorAll('img').forEach(img => {
+            img.style.transition = 'opacity 0.4s ease';
+            if (img.complete) img.style.opacity = 1;
+            else { img.style.opacity = 0; img.onload = () => img.style.opacity = 1; }
+        });
+
+        // ── Flash Sale Countdown ──
+        const timerEl = document.getElementById('flashTimer');
+        if (timerEl) {
+            const endsAt = new Date(timerEl.dataset.ends);
+            function updateFlashTimer() {
+                const diff = endsAt - new Date();
+                if (diff <= 0) { timerEl.textContent = 'শেষ!'; return; }
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                timerEl.textContent = `⏳ ${h}h ${m}m ${s}s বাকি`;
+            }
+            updateFlashTimer();
+            setInterval(updateFlashTimer, 1000);
+        }
+
+        // ── AI Chat Widget ──
+        {% if chat_enabled %}
+        const chatToggle = document.getElementById('aiChatToggle');
+        const chatBox = document.getElementById('aiChatBox');
+        const chatInput = document.getElementById('aiChatInput');
+        const chatSend = document.getElementById('aiChatSend');
+        const chatMsgs = document.getElementById('aiChatMessages');
+        const chatBadge = document.getElementById('aiChatBadge');
+        const iconOpen = document.querySelector('.ai-chat-icon-open');
+        const iconClose = document.querySelector('.ai-chat-icon-close');
+        const closeBtn = document.getElementById('aiChatCloseBtn');
+        let isOpen = false;
+
+        function toggleChat() {
+            isOpen = !isOpen;
+            chatBox.classList.toggle('active', isOpen);
+            iconOpen.style.display = isOpen ? 'none' : 'flex';
+            iconClose.style.display = isOpen ? 'flex' : 'none';
+            if (isOpen) {
+                chatBadge.style.display = 'none';
+                chatInput.focus();
+            }
+        }
+
+        chatToggle.addEventListener('click', toggleChat);
+        closeBtn.addEventListener('click', toggleChat);
+
+        function appendMsg(text, sender, options = {}) {
+            const wrap = document.createElement('div');
+            wrap.className = `ai-msg ai-msg-${sender}`;
+            const bubble = document.createElement('div');
+            bubble.className = 'ai-msg-bubble';
+
+            // If HTML response, use innerHTML (sanitized by server)
+            if (options.html) {
+                bubble.innerHTML = text;
+            } else {
+                bubble.textContent = text;
+            }
+
+            const time = document.createElement('div');
+            time.className = 'ai-msg-time';
+            time.textContent = new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
+            wrap.appendChild(bubble);
+            wrap.appendChild(time);
+
+            // WhatsApp handoff button (if flagged by server)
+            if (options.whatsapp && options.wa_number) {
+                const waBtn = document.createElement('a');
+                waBtn.href = `https://wa.me/${options.wa_number}?text=${encodeURIComponent('আমার প্রশ্ন আছে...')}`;
+                waBtn.target = '_blank';
+                waBtn.className = 'ai-wa-btn';
+                waBtn.innerHTML = '💬 WhatsApp এ কথা বলুন';
+                waBtn.style.cssText = `
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-top: 8px;
+                    padding: 6px 12px;
+                    border-radius: 8px;
+                    background: linear-gradient(135deg,#25d366,#20ba60);
+                    color: white;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    text-decoration: none;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                `;
+                waBtn.onmouseover = () => waBtn.style.filter = 'brightness(1.1)';
+                waBtn.onmouseout = () => waBtn.style.filter = 'brightness(1)';
+                bubble.appendChild(waBtn);
+            }
+
+            chatMsgs.appendChild(wrap);
+            chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+            // ✅ Typewriter effect — শুধু bot message এর জন্য (plain text only)
+            if (sender === 'bot' && !options.html) {
+                let i = 0;
+                bubble.textContent = '';
+                const speed = 20;
+                function type() {
+                    if (i < text.length) {
+                        bubble.textContent += text.charAt(i);
+                        i++;
+                        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+                        setTimeout(type, speed);
+                    }
+                }
+                type();
+            }
+        }
+
+        function showTyping() {
+            const t = document.createElement('div');
+            t.className = 'ai-msg ai-msg-bot ai-typing';
+            t.id = 'aiTyping';
+            t.innerHTML = '<div class="ai-msg-bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>';
+            chatMsgs.appendChild(t);
+            chatMsgs.scrollTop = chatMsgs.scrollHeight;
+        }
+
+        function removeTyping() {
+            document.getElementById('aiTyping')?.remove();
+        }
+
+        async function sendMessage(question) {
+            if (!question.trim()) return;
+            document.getElementById('aiQuickReplies')?.remove();
+            appendMsg(question, 'user');
+            chatInput.value = '';
+            chatSend.disabled = true;
+            showTyping();
+            try {
+                const res = await fetch('{% url "ai_chat" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ question })
+                });
+                const data = await res.json();
+                removeTyping();
+                const opts = {
+                    html: data.html || false,
+                    whatsapp: data.whatsapp || false,
+                    wa_number: data.wa_number || '{{ site_settings.whatsapp_number }}'
+                };
+                appendMsg(data.answer || 'দুঃখিত, উত্তর পাওয়া যায়নি।', 'bot', opts);
+            } catch {
+                removeTyping();
+                appendMsg('সংযোগ সমস্যা। WhatsApp এ যোগাযোগ করুন।', 'bot', {
+                    whatsapp: true,
+                    wa_number: '{{ site_settings.whatsapp_number }}'
+                });
+            } finally {
+                chatSend.disabled = false;
+                chatInput.focus();
+            }
+        }
+
+        function sendQuick(text) { sendMessage(text); }
+
+        chatSend.addEventListener('click', () => sendMessage(chatInput.value));
+        chatInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(chatInput.value); }
+        });
+
+        // Show badge after 3s if not opened
+        setTimeout(() => { if (!isOpen) chatBadge.style.display = 'flex'; }, 3000);
+        {% endif %}
     </script>
-    <script defer src="/_vercel/insights/script.js"></script>
-    {% block extra_js %}{% endblock %}
+
+    <!-- AI Chat + Flash Sale CSS -->
+    <style>
+        /* ── Flash Sale Banner ── */
+        .flash-banner {
+            background: linear-gradient(90deg, #7c3aed, #ec4899, #f59e0b);
+            padding: 10px 16px;
+            position: relative;
+            z-index: 10001;
+        }
+
+        .flash-banner-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .flash-fire {
+            font-size: 1.2rem;
+        }
+
+        .flash-text {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .flash-timer {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+
+        .flash-cta {
+            background: white;
+            color: #7c3aed;
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 4px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+
+        .flash-cta:hover {
+            transform: scale(1.05);
+            color: #7c3aed;
+        }
+
+        .flash-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: grid;
+            place-items: center;
+            margin-left: 4px;
+        }
+
+        /* ── AI Chat Widget ── */
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 76px;
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .ai-chat-toggle {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #5b7fff, #7c3aed);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(91, 127, 255, 0.45);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            animation: chatPulse 3s ease-in-out infinite;
+        }
+
+        .ai-chat-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 24px rgba(91, 127, 255, 0.65);
+            animation: none;
+        }
+
+        @keyframes chatPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 16px rgba(91, 127, 255, 0.45);
+            }
+
+            50% {
+                box-shadow: 0 4px 28px rgba(91, 127, 255, 0.7);
+            }
+        }
+
+        .ai-chat-icon-open,
+        .ai-chat-icon-close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-chat-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ec4899;
+            color: white;
+            font-size: 0.6rem;
+            font-weight: 800;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid var(--darker-bg, #050810);
+        }
+
+        /* Chat Box */
+        .ai-chat-box {
+            position: absolute;
+            bottom: 56px;
+            right: 0;
+            width: 320px;
+            max-height: 460px;
+            background: rgba(10, 14, 26, 0.98);
+            border: 1px solid rgba(91, 127, 255, 0.25);
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(12px) scale(0.97);
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .ai-chat-box.active {
+            opacity: 1;
+            pointer-events: all;
+            transform: translateY(0) scale(1);
+        }
+
+        /* Header */
+        .ai-chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: linear-gradient(135deg, rgba(91, 127, 255, 0.15), rgba(124, 58, 237, 0.15));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .ai-chat-avatar {
+            font-size: 1.4rem;
+            width: 36px;
+            height: 36px;
+            background: rgba(91, 127, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ai-chat-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #e8ecf4;
+        }
+
+        .ai-chat-status {
+            font-size: 0.7rem;
+            color: #6b7a99;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .ai-online-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00e5b0;
+            animation: onlinePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes onlinePulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        .ai-chat-close-btn {
+            margin-left: auto;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #6b7a99;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+
+        .ai-chat-close-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #e8ecf4;
+        }
+
+        /* Messages */
+        .ai-chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(91, 127, 255, 0.3) transparent;
+        }
+
+        .ai-msg {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
+
+        .ai-msg-user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .ai-msg-bot {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .ai-msg-bubble {
+            padding: 9px 13px;
+            border-radius: 14px;
+            font-size: 0.82rem;
+            line-height: 1.6;
+        }
+
+        .ai-msg-user .ai-msg-bubble {
+            background: linear-gradient(135deg, #5b7fff, #7c3aed);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai-msg-bot .ai-msg-bubble {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #c8d0e8;
+            border-bottom-left-radius: 4px;
+        }
+
+        .ai-msg-time {
+            font-size: 0.65rem;
+            color: #4a5568;
+            margin-top: 3px;
+        }
+
+        /* Typing indicator */
+        .typing-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6b7a99;
+            margin: 0 2px;
+            animation: typingBounce 1.2s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+            }
+
+            30% {
+                transform: translateY(-6px);
+            }
+        }
+
+        /* Quick replies */
+        .ai-quick-replies {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .ai-quick-btn {
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: rgba(91, 127, 255, 0.1);
+            border: 1px solid rgba(91, 127, 255, 0.25);
+            color: #8ba4ff;
+            border-radius: 20px;
+            padding: 4px 10px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            font-family: inherit;
+        }
+
+        .ai-quick-btn:hover {
+            background: rgba(91, 127, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        /* Input */
+        .ai-chat-input-area {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(91, 127, 255, 0.2);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .ai-chat-input::placeholder {
+            color: rgba(224, 224, 224, 0.4);
+        }
+
+        .ai-chat-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(91, 127, 255, 0.4);
+        }
+
+        .ai-chat-send {
+            background: linear-gradient(135deg, #5b7fff 0%, #00e5b0 100%);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        .ai-chat-send:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .ai-chat-send:active {
+            transform: translateY(0);
+        }
+
+        .ai-chat-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+
+<!-- ═══════════════════════════════════════════════════
+     🔔 TOAST NOTIFICATION SYSTEM (Global, polished)
+     Usage: window.pkToast('Message', 'success'|'error'|'info'|'warning')
+     ═══════════════════════════════════════════════════ -->
+<div id="pk-toast-stack" aria-live="polite"></div>
+
+<style>
+#pk-toast-stack {
+  position: fixed; bottom: 24px; right: 24px;
+  display: flex; flex-direction: column-reverse; gap: 10px;
+  z-index: 999999; pointer-events: none;
+}
+.pk-toast {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 18px; border-radius: 14px;
+  font-size: 0.84rem; font-weight: 600; color: #fff;
+  min-width: 220px; max-width: 340px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.12);
+  pointer-events: all;
+  transform: translateX(120%);
+  transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), opacity 0.35s;
+  opacity: 0;
+}
+.pk-toast.pk-toast--in  { transform: translateX(0); opacity: 1; }
+.pk-toast.pk-toast--out { transform: translateX(120%); opacity: 0; }
+
+.pk-toast--success { background: rgba(0,40,28,0.94); border-color: rgba(0,229,176,0.35); }
+.pk-toast--error   { background: rgba(40,10,24,0.94); border-color: rgba(244,114,182,0.35); }
+.pk-toast--info    { background: rgba(10,20,50,0.94); border-color: rgba(91,127,255,0.35); }
+.pk-toast--warning { background: rgba(40,28,5,0.94);  border-color: rgba(245,158,11,0.35); }
+
+.pk-toast-icon { font-size: 1.1rem; flex-shrink: 0; }
+.pk-toast-msg  { flex: 1; line-height: 1.4; }
+.pk-toast-close {
+  background: none; border: none; color: rgba(255,255,255,0.4);
+  font-size: 1rem; cursor: pointer; padding: 0 0 0 6px; flex-shrink: 0;
+  transition: color 0.15s;
+}
+.pk-toast-close:hover { color: #fff; }
+
+.pk-toast-bar {
+  position: absolute; bottom: 0; left: 0; height: 3px; border-radius: 0 0 14px 14px;
+  transition: width linear;
+}
+.pk-toast--success .pk-toast-bar { background: #00e5b0; }
+.pk-toast--error   .pk-toast-bar { background: #f472b6; }
+.pk-toast--info    .pk-toast-bar { background: #5b7fff; }
+.pk-toast--warning .pk-toast-bar { background: #f59e0b; }
+
+@media (max-width: 480px) {
+  #pk-toast-stack { bottom: 12px; right: 12px; left: 12px; }
+  .pk-toast { min-width: unset; max-width: 100%; }
+}
+</style>
+
+<script>
+(function() {
+  const ICONS = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
+  const DURATION = 3200;
+
+  window.pkToast = function(msg, type = 'info') {
+    const stack = document.getElementById('pk-toast-stack');
+    if (!stack) return;
+
+    const t = document.createElement('div');
+    t.className = `pk-toast pk-toast--${type}`;
+    t.style.position = 'relative'; t.style.overflow = 'hidden';
+    t.innerHTML = `
+      <span class="pk-toast-icon">${ICONS[type] || ICONS.info}</span>
+      <span class="pk-toast-msg">${msg}</span>
+      <button class="pk-toast-close" aria-label="Close">✕</button>
+      <div class="pk-toast-bar" style="width:100%"></div>
+    `;
+
+    // Close button
+    t.querySelector('.pk-toast-close').addEventListener('click', () => dismiss(t));
+
+    stack.appendChild(t);
+    requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('pk-toast--in')));
+
+    // Progress bar
+    const bar = t.querySelector('.pk-toast-bar');
+    bar.style.transition = `width ${DURATION}ms linear`;
+    setTimeout(() => bar.style.width = '0%', 50);
+
+    // Auto-dismiss
+    const timer = setTimeout(() => dismiss(t), DURATION);
+    t.dataset.timer = timer;
+
+    function dismiss(el) {
+      clearTimeout(el.dataset.timer);
+      el.classList.remove('pk-toast--in');
+      el.classList.add('pk-toast--out');
+      setTimeout(() => el.remove(), 400);
+    }
+  };
+
+  // Expose globally so cart.js + other scripts can use it
+  window.showToast = (msg, type) => window.pkToast(msg, type);
+
+  // Convert Django messages to toasts on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-django-message]').forEach(el => {
+      const type = el.dataset.djangoType || 'info';
+      window.pkToast(el.textContent.trim(), type);
+      el.remove();
+    });
+  });
+})();
+</script>
+
+<!-- Django messages → toast conversion -->
+{% if messages %}
+{% for message in messages %}
+<span data-django-message data-django-type="{% if message.tags == 'error' %}error{% elif message.tags == 'success' %}success{% elif message.tags == 'warning' %}warning{% else %}info{% endif %}" style="display:none">{{ message }}</span>
+{% endfor %}
+{% endif %}
+
+<!-- ═══════════════════════════════════════════════════
+     🪟 GLASS MODAL (Reusable confirm/info modal)
+     Usage: window.pkModal({ title, body, confirmText, onConfirm, type })
+     ═══════════════════════════════════════════════════ -->
+<div id="pk-glass-modal" class="pk-modal-backdrop" aria-hidden="true" role="dialog">
+  <div class="pk-modal-box">
+    <div class="pk-modal-icon" id="pkModalIcon">⚠️</div>
+    <h3 class="pk-modal-title" id="pkModalTitle">Confirm</h3>
+    <p class="pk-modal-body" id="pkModalBody"></p>
+    <div class="pk-modal-actions">
+      <button class="pk-modal-btn pk-modal-btn--cancel" id="pkModalCancel">বাতিল</button>
+      <button class="pk-modal-btn pk-modal-btn--confirm" id="pkModalConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.pk-modal-backdrop {
+  position: fixed; inset: 0; z-index: 99998;
+  background: rgba(5,8,20,0.75);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.25s, visibility 0.25s;
+}
+.pk-modal-backdrop.pk-modal--open { opacity: 1; visibility: visible; }
+
+.pk-modal-box {
+  background: rgba(14,17,32,0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px; padding: 32px 28px;
+  max-width: 380px; width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+  transform: scale(0.88) translateY(20px);
+  transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+}
+.pk-modal-backdrop.pk-modal--open .pk-modal-box { transform: scale(1) translateY(0); }
+
+.pk-modal-icon  { font-size: 2.4rem; margin-bottom: 12px; }
+.pk-modal-title { font-size: 1.1rem !important; font-weight: 800; color: #e8ecf4; margin: 0 0 8px; }
+.pk-modal-body  { font-size: 0.84rem !important; color: #9ba8c4; line-height: 1.6; margin-bottom: 22px; }
+
+.pk-modal-actions { display: flex; gap: 10px; justify-content: center; }
+.pk-modal-btn {
+  flex: 1; max-width: 140px; padding: 10px 0; border-radius: 10px;
+  border: none; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.pk-modal-btn--cancel {
+  background: rgba(255,255,255,0.07); color: #9ba8c4; border: 1px solid rgba(255,255,255,0.1);
+}
+.pk-modal-btn--cancel:hover { background: rgba(255,255,255,0.12); color: #e8ecf4; }
+.pk-modal-btn--confirm {
+  background: linear-gradient(135deg, #5b7fff, #7c3aed); color: white;
+}
+.pk-modal-btn--confirm:hover { opacity: 0.88; }
+.pk-modal-btn--confirm.pk-modal-btn--danger {
+  background: linear-gradient(135deg, #ef4444, #ec4899);
+}
+</style>
+
+<script>
+(function() {
+  const backdrop  = document.getElementById('pk-glass-modal');
+  const titleEl   = document.getElementById('pkModalTitle');
+  const bodyEl    = document.getElementById('pkModalBody');
+  const iconEl    = document.getElementById('pkModalIcon');
+  const confirmEl = document.getElementById('pkModalConfirm');
+  const cancelEl  = document.getElementById('pkModalCancel');
+  if (!backdrop) return;
+
+  let _onConfirm = null;
+
+  window.pkModal = function({ title = 'Confirm', body = '', confirmText = 'Confirm',
+                               cancelText = 'বাতিল', icon = '⚠️', type = 'default',
+                               onConfirm = null } = {}) {
+    titleEl.textContent   = title;
+    bodyEl.innerHTML      = body;
+    iconEl.textContent    = icon;
+    confirmEl.textContent = confirmText;
+    cancelEl.textContent  = cancelText;
+    _onConfirm            = onConfirm;
+
+    confirmEl.className = 'pk-modal-btn pk-modal-btn--confirm' +
+      (type === 'danger' ? ' pk-modal-btn--danger' : '');
+
+    backdrop.classList.add('pk-modal--open');
+    backdrop.removeAttribute('aria-hidden');
+    confirmEl.focus();
+  };
+
+  function closeModal() {
+    backdrop.classList.remove('pk-modal--open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    _onConfirm = null;
+  }
+
+  confirmEl.addEventListener('click', () => {
+    if (_onConfirm) _onConfirm();
+    closeModal();
+  });
+  cancelEl.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+})();
+</script>
 </body>
 
 </html>

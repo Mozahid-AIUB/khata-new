@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Django
+db.sqlite3
+media/
+staticfiles/
+
+# Virtual environment
+venv/
+env/
+.env
+
+# IDE / OS
+.vscode/
+*.lnk
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Misc
+*.log
+Practical Khata - MOZAHID/

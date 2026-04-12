@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice #{{ order.order_id|default:order.id }} — Practical Khata</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#f5f7fa; color:#1a202c; }
+  .invoice-wrap { max-width:700px; margin:40px auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,.12); }
+
+  /* Header */
+  .inv-header { background:linear-gradient(135deg, #0a0e1a, #1a2540); color:#e8ecf4; padding:36px 40px; }
+  .inv-logo { font-size:1.6rem; font-weight:900; color:#5b7fff; letter-spacing:-0.5px; }
+  .inv-tagline { font-size:.8rem; color:#6b7a99; margin-top:2px; }
+  .inv-header-grid { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; }
+  .inv-meta { text-align:right; }
+  .inv-meta h2 { font-size:1.4rem; font-weight:900; color:#00e5b0; margin-bottom:6px; }
+  .inv-meta p { font-size:.82rem; color:#9aa5c4; line-height:1.8; }
+
+  /* Body sections */
+  .inv-body { padding:32px 40px; }
+  .inv-section-title {
+    font-size:.7rem; font-weight:800; letter-spacing:2px; text-transform:uppercase;
+    color:#5b7fff; margin-bottom:12px; padding-bottom:6px;
+    border-bottom:1px solid #e2e8f0;
+  }
+  .inv-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+  .inv-info-box { background:#f8fafc; border-radius:8px; padding:14px 16px; }
+  .inv-info-box label { font-size:.7rem; font-weight:700; color:#6b7a99; text-transform:uppercase; letter-spacing:1px; display:block; margin-bottom:4px; }
+  .inv-info-box p { font-size:.88rem; color:#1a202c; font-weight:600; line-height:1.6; }
+  .inv-eta { background:#f0fdf9; border:1px solid #a7f3d0; border-radius:8px; padding:10px 14px; margin-bottom:20px; font-size:.85rem; color:#065f46; font-weight:600; }
+
+  /* Items table */
+  .inv-table { width:100%; border-collapse:collapse; margin-bottom:20px; font-size:.87rem; }
+  .inv-table thead tr { background:#0a0e1a; color:#e8ecf4; }
+  .inv-table thead th { padding:10px 14px; text-align:left; font-weight:700; font-size:.78rem; letter-spacing:.5px; }
+  .inv-table thead th:last-child { text-align:right; }
+  .inv-table thead th:nth-child(2), .inv-table thead th:nth-child(3) { text-align:center; }
+  .inv-table tbody tr:nth-child(even) { background:#f8fafc; }
+  .inv-table tbody td { padding:10px 14px; border-bottom:1px solid #f1f5f9; color:#1a202c; }
+  .inv-table tbody td:nth-child(2) { text-align:center; color:#6b7a99; }
+  .inv-table tbody td:nth-child(3) { text-align:center; }
+  .inv-table tbody td:last-child { text-align:right; font-weight:700; }
+
+  /* Totals */
+  .inv-totals { margin-left:auto; max-width:280px; }
+  .inv-totals table { width:100%; font-size:.87rem; }
+  .inv-totals td { padding:5px 0; }
+  .inv-totals td:last-child { text-align:right; font-weight:600; }
+  .inv-totals .total-row td { border-top:2px solid #5b7fff; padding-top:10px; font-size:1.05rem; font-weight:900; color:#00e5b0; }
+  .inv-discount { color:#e53e3e; }
+
+  /* Payment */
+  .inv-pay-row { display:flex; justify-content:space-between; align-items:center; margin-top:20px; padding:14px 16px; background:#f8fafc; border-radius:8px; font-size:.85rem; flex-wrap:wrap; gap:8px; }
+  .inv-pay-status { display:inline-block; padding:4px 12px; border-radius:20px; font-weight:700; font-size:.78rem; }
+  .inv-pay-status.paid { background:#d1fae5; color:#065f46; }
+  .inv-pay-status.unpaid { background:#fef3c7; color:#92400e; }
+
+  /* Footer */
+  .inv-footer { background:#f8fafc; border-top:1px solid #e2e8f0; padding:20px 40px; text-align:center; font-size:.8rem; color:#6b7a99; }
+
+  /* Print button */
+  .print-bar { text-align:center; padding:20px; background:#fff; border-top:1px solid #e2e8f0; }
+  .print-btn { background:linear-gradient(135deg,#5b7fff,#7c3aed); color:white; border:none; padding:12px 32px; border-radius:8px; font-weight:700; font-size:.9rem; cursor:pointer; margin-right:8px; }
+  .print-btn:hover { opacity:.9; }
+  .pdf-note { font-size:.78rem; color:#6b7a99; margin-top:8px; }
+
+  @media print {
+    body { background:white; }
+    .invoice-wrap { box-shadow:none; margin:0; border-radius:0; }
+    .print-bar { display:none; }
+    .inv-table thead tr { background:#0a0e1a !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  @media (max-width:576px) {
+    .inv-header, .inv-body { padding:20px; }
+    .inv-info-grid { grid-template-columns:1fr; }
+    .inv-header-grid { flex-direction:column; }
+    .inv-meta { text-align:left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="invoice-wrap">
+
+  <!-- Header -->
+  <div class="inv-header">
+    <div class="inv-header-grid">
+      <div>
+        <div class="inv-logo">📚 Practical Khata</div>
+        <div class="inv-tagline">SSC &amp; HSC Practical Notebooks</div>
+      </div>
+      <div class="inv-meta">
+        <h2>INVOICE</h2>
+        <p>
+          #{{ order.order_id|default:order.id }}<br>
+          {{ order.created_at|date:"d M Y" }}<br>
+          Status: {{ order.get_status_display }}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="inv-body">
+
+    <!-- Customer Info -->
+    <div class="inv-section-title">Customer Information</div>
+    <div class="inv-info-grid">
+      <div class="inv-info-box">
+        <label>Customer Name</label>
+        <p>{{ order.customer_name }}</p>
+      </div>
+      <div class="inv-info-box">
+        <label>Phone</label>
+        <p>{{ order.phone }}</p>
+      </div>
+      <div class="inv-info-box" style="grid-column:1/-1">
+        <label>Delivery Address</label>
+        <p>{{ order.address }}</p>
+      </div>
+    </div>
+
+    {% if order.estimated_delivery_date and order.status != 'delivered' and order.status != 'cancelled' %}
+    <div class="inv-eta">
+      📅 আনুমানিক ডেলিভারি: <strong>{{ order.estimated_delivery_date|date:"d M, Y (l)" }}</strong>
+    </div>
+    {% endif %}
+
+    <!-- Items -->
+    <div class="inv-section-title">Order Items</div>
+    <table class="inv-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Unit Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order.items.all %}
+        <tr>
+          <td>{{ item.product.name }}</td>
+          <td>{{ item.quantity }}</td>
+          <td>৳{{ item.price }}</td>
+          <td>৳{% widthratio item.price 1 item.quantity %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Totals -->
+    <div class="inv-totals">
+      <table>
+        <tr><td style="color:#6b7a99">Subtotal</td><td>৳{% with s=order.total_amount|floatformat:0 %}{{ s }}{% endwith %}</td></tr>
+        <tr><td style="color:#6b7a99">Delivery</td><td>৳{{ order.delivery_charge|floatformat:0 }}</td></tr>
+        {% if order.discount %}
+        <tr><td style="color:#e53e3e">Discount</td><td class="inv-discount">−৳{{ order.discount|floatformat:0 }}</td></tr>
+        {% endif %}
+        <tr class="total-row"><td><strong>Total</strong></td><td><strong>৳{{ order.final_amount|floatformat:0 }}</strong></td></tr>
+      </table>
+    </div>
+
+    <!-- Payment -->
+    <div class="inv-pay-row">
+      <div>
+        <strong>Payment:</strong>
+        {% if order.payment_method == 'bkash' %}💜 bKash
+        {% elif order.payment_method == 'nagad' %}🟠 Nagad
+        {% elif order.payment_method == 'sslcommerz' %}💳 Card / Online
+        {% else %}💵 Cash on Delivery{% endif %}
+        {% if order.payment_ref %} &nbsp; | &nbsp; Ref: {{ order.payment_ref }}{% endif %}
+      </div>
+      <span class="inv-pay-status {% if order.payment_status == 'paid' %}paid{% else %}unpaid{% endif %}">
+        {% if order.payment_status == 'paid' %}✅ Paid{% else %}⏳ Unpaid{% endif %}
+      </span>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="inv-footer">
+    ধন্যবাদ Practical Khata-র সাথে থাকার জন্য 🙏 | practicalkhata.com
+  </div>
+
+  <!-- Print / Save -->
+  <div class="print-bar">
+    <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    <a href="{% url 'order_tracking' order.id %}" style="font-size:.82rem; color:#6b7a99;">← Tracking এ ফিরে যাও</a>
+    <div class="pdf-note">Chrome-এ Print করে "Save as PDF" select করলেই PDF পাবে।</div>
+  </div>
+
+</div>
+
+</body>
+</html>

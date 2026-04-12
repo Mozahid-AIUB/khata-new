@@ -1,0 +1,1118 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ product.get_meta_title }}{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════════════════════
+     📦 PRODUCT DETAIL
+══════════════════════════════════════════════════════ -->
+<section class="product-detail-section">
+    <div class="container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-nav">
+            <a href="{% url 'home' %}">Home</a>
+            <span>›</span>
+            <a href="{% url 'products' %}">Products</a>
+            <span>›</span>
+            {% if product.category %}
+            <a href="{% url 'product_list' product.category.slug %}">{{ product.category.name }}</a>
+            <span>›</span>
+            {% endif %}
+            <span class="current">{{ product.name }}</span>
+        </nav>
+
+        <!-- Product Main Grid -->
+        <div class="pd-grid">
+
+            <!-- Left: Image -->
+            <div class="pd-image-section">
+                <div class="pd-main-image">
+                    {% if product.is_on_sale %}
+                    <div class="pd-sale-badge">
+                        🔥 {{ product.discount_percent }}% OFF
+                    </div>
+                    {% endif %}
+
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" id="mainImage">
+                    {% else %}
+                    <div class="pd-image-placeholder">
+                        <span>📚</span>
+                        <p>{{ product.name }}</p>
+                    </div>
+                    {% endif %}
+
+                    {% if not product.is_in_stock %}
+                    <div class="pd-stock-overlay">
+                        <div class="stock-out-badge">😔 Stock শেষ</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Thumbnail Gallery (if extra_images exist) -->
+                {% if product.extra_images.all %}
+                <div class="pd-thumbnails">
+                    <div class="pd-thumb active" onclick="changeImage('{{ product.image.url }}', this)">
+                        <img src="{{ product.image.url }}" alt="Main">
+                    </div>
+                    {% for img in product.extra_images.all %}
+                    <div class="pd-thumb" onclick="changeImage('{{ img.image.url }}', this)">
+                        <img src="{{ img.image.url }}" alt="{{ img.alt }}">
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right: Info -->
+            <div class="pd-info-section">
+
+                <!-- Meta Badges -->
+                <div class="pd-meta">
+                    <span class="level-badge">{{ product.level }}</span>
+                    {% if product.category %}
+                    <span class="category-tag">{{ product.category.icon }} {{ product.category.name }}</span>
+                    {% endif %}
+                    {% if product.featured %}
+                    <span class="featured-tag">⭐ Featured</span>
+                    {% endif %}
+                </div>
+
+                <!-- Title -->
+                <h1 class="pd-title">{{ product.name }}</h1>
+
+                <!-- Rating -->
+                <div class="pd-rating">
+                    <div class="stars">
+                        {% for i in "12345" %}
+                        {% if forloop.counter <= avg_rating %} <span class="star filled">★</span>
+                            {% else %}
+                            <span class="star">☆</span>
+                            {% endif %}
+                            {% endfor %}
+                    </div>
+                    <span class="rating-text">{{ avg_rating }} ({{ review_count }} reviews)</span>
+                </div>
+
+                <!-- Price -->
+                <div class="pd-price-box">
+                    {% if product.is_on_sale %}
+                    <div class="pd-price-row">
+                        <span class="pd-price-old">৳{{ product.price }}</span>
+                        <span class="pd-price-current">৳{{ product.sale_price }}</span>
+                        <span class="pd-save-badge">{{ product.discount_percent }}% ছাড়</span>
+                    </div>
+                    {% else %}
+                    <span class="pd-price-current">৳{{ product.price }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Stock Status -->
+                <div class="pd-stock-status">
+                    {% if product.is_in_stock %}
+                    {% if product.is_low_stock %}
+                    <span class="stock-low">⚠️ মাত্র {{ product.stock }}টি বাকি!</span>
+                    {% else %}
+                    <span class="stock-in">✅ Stock এ আছে ({{ product.stock }}টি)</span>
+                    {% endif %}
+                    {% else %}
+                    <span class="stock-out">❌ Stock শেষ</span>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div class="pd-description">
+                    <h3>📝 বিবরণ</h3>
+                    <p>{{ product.description }}</p>
+                </div>
+
+                <!-- Features List -->
+                <div class="pd-features">
+                    <h3>✨ বিশেষত্ব</h3>
+                    <ul>
+                        <li><span class="feat-icon">✍️</span> Professional হ্যান্ডরাইটিং</li>
+                        <li><span class="feat-icon">📐</span> Perfect ফিগার ও ডায়াগ্রাম</li>
+                        <li><span class="feat-icon">📚</span> Board Standard Format</li>
+                        <li><span class="feat-icon">✅</span> 100% Neat & Error-Free</li>
+                    </ul>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="pd-actions">
+                    {% if product.is_in_stock %}
+                    {% if in_cart %}
+                    <a href="{% url 'cart' %}" class="btn-added">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        কার্টে আছে
+                    </a>
+                    {% else %}
+                    <button class="btn-add-cart" onclick="addToCartDetail({{ product.id }})">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <path d="M16 10a4 4 0 01-8 0" />
+                        </svg>
+                        কার্টে যোগ করুন
+                    </button>
+                    {% endif %}
+
+                    <a href="https://wa.me/8801707591255?text=আমি%20{{ product.name|urlencode }}%20অর্ডার%20করতে%20চাই।%20দাম:%20৳{{ product.current_price }}"
+                        class="btn-whatsapp" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                            fill="currentColor">
+                            <path
+                                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                        </svg>
+                        WhatsApp এ অর্ডার করুন
+                    </a>
+                    {% else %}
+                    <div class="btn-stock-out">😔 Stock শেষ</div>
+                    <a href="https://wa.me/8801707591255?text={{ product.name|urlencode }}%20কবে%20stock%20এ%20আসবে?"
+                        class="btn-notify" target="_blank">
+                        📢 Notify Me
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Delivery Info -->
+                <div class="pd-delivery-info">
+                    <div class="delivery-row">
+                        <span class="delivery-icon">🚚</span>
+                        <div>
+                            <strong>FREE Delivery</strong>
+                            <p>সব জেলায় ডেলিভারি চার্জ ফ্রি</p>
+                        </div>
+                    </div>
+                    <div class="delivery-row">
+                        <span class="delivery-icon">⏱️</span>
+                        <div>
+                            <strong>দ্রুত ডেলিভারি</strong>
+                            <p>২-৩ কার্যদিবসে হাতে পাবেন</p>
+                        </div>
+                    </div>
+                    <div class="delivery-row">
+                        <span class="delivery-icon">💳</span>
+                        <div>
+                            <strong>নিরাপদ পেমেন্ট</strong>
+                            <p>bKash, Nagad, Cash on Delivery</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Reviews Section -->
+        <div class="pd-reviews-section">
+            <div class="reviews-header">
+                <h2>⭐ Customer Reviews</h2>
+                <div class="review-summary">
+                    <div class="avg-rating">
+                        <span class="big-rating">{{ avg_rating }}</span>
+                        <div class="stars-lg">
+                            {% for i in "12345" %}
+                            {% if forloop.counter <= avg_rating %} <span class="star filled">★</span>
+                                {% else %}
+                                <span class="star">☆</span>
+                                {% endif %}
+                                {% endfor %}
+                        </div>
+                        <p>{{ review_count }} টি review</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Review Form -->
+            <div class="review-form-card">
+                <h3>✍️ তোমার Review দাও</h3>
+                <form method="POST" action="{% url 'submit_review' product.slug %}" class="review-form">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">নাম</label>
+                            <input type="text" id="name" name="name" required class="form-input"
+                                value="{% if user.is_authenticated %}{{ user.username }}{% endif %}">
+                        </div>
+                        <div class="form-group">
+                            <label for="rating">Rating</label>
+                            <select id="rating" name="rating" class="form-input">
+                                <option value="5">⭐⭐⭐⭐⭐ (5)</option>
+                                <option value="4">⭐⭐⭐⭐ (4)</option>
+                                <option value="3">⭐⭐⭐ (3)</option>
+                                <option value="2">⭐⭐ (2)</option>
+                                <option value="1">⭐ (1)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="comment">মন্তব্য</label>
+                        <textarea id="comment" name="comment" rows="4" required class="form-input"
+                            placeholder="তোমার অভিজ্ঞতা শেয়ার করো..."></textarea>
+                    </div>
+                    <button type="submit" class="submit-review-btn">Submit Review</button>
+                </form>
+            </div>
+
+            <!-- Reviews List -->
+            <div class="reviews-list">
+                {% for review in reviews %}
+                <div class="review-card">
+                    <div class="review-header">
+                        <div class="reviewer-info">
+                            <div class="reviewer-avatar">{{ review.name|slice:":2"|upper }}</div>
+                            <div>
+                                <strong>{{ review.name }}</strong>
+                                <span class="review-date">{{ review.created_at|date:"d M Y" }}</span>
+                            </div>
+                        </div>
+                        <div class="review-stars">
+                            {% for i in review.star_range %}
+                            <span class="star filled">★</span>
+                            {% endfor %}
+                            {% for i in "12345" %}
+                            {% if forloop.counter > review.rating %}
+                            <span class="star">☆</span>
+                            {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <p class="review-text">{{ review.comment }}</p>
+                </div>
+                {% empty %}
+                <div class="no-reviews">
+                    <span class="no-review-icon">💬</span>
+                    <p>এখনো কোনো review নেই। প্রথম review দাও!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Related Products -->
+        {% if related_products %}
+        <div class="related-section">
+            <div class="section-head">
+                <h2 class="section-title">📚 Related Products</h2>
+                <div class="title-bar"></div>
+            </div>
+            <div class="products-grid">
+                {% for prod in related_products %}
+                <div class="pcard">
+                    <div class="pcard-image">
+                        {% if prod.image %}
+                        <img src="{{ prod.image.url }}" alt="{{ prod.name }}" loading="lazy">
+                        {% else %}
+                        <div class="pcard-image-placeholder"><span>📚</span></div>
+                        {% endif %}
+                        <div class="pcard-overlay">
+                            <a href="{% url 'product_detail' prod.slug %}" class="quick-add">View Details →</a>
+                        </div>
+                    </div>
+                    <div class="pcard-body">
+                        <div class="pcard-meta">
+                            <span class="level-badge">{{ prod.level }}</span>
+                            <span class="category-tag">{{ prod.category.name }}</span>
+                        </div>
+                        <h3 class="pcard-name">{{ prod.name }}</h3>
+                        <div class="pcard-footer">
+                            <span class="pcard-price">৳{{ prod.price }}</span>
+                            <a href="{% url 'product_detail' prod.slug %}" class="add-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <path d="M5 12h14M12 5l7 7-7 7" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</section>
+
+
+<style>
+    /* ═══════════════════════════════════════════════════════
+   📦 PRODUCT DETAIL STYLES
+   ═══════════════════════════════════════════════════════ */
+
+    .product-detail-section {
+        padding: 80px 0 100px;
+        background: var(--bg);
+    }
+
+    /* ─── Breadcrumb ─── */
+    .breadcrumb-nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 32px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb-nav a {
+        color: var(--neon-blue);
+        transition: color 0.2s;
+    }
+
+    .breadcrumb-nav a:hover {
+        color: var(--neon-green);
+    }
+
+    .breadcrumb-nav .current {
+        color: var(--text);
+        font-weight: 600;
+    }
+
+    /* ─── Main Grid ─── */
+    .pd-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 64px;
+        margin-bottom: 80px;
+    }
+
+    /* ─── Image Section ─── */
+    .pd-image-section {
+        position: sticky;
+        top: 100px;
+        height: fit-content;
+    }
+
+    .pd-main-image {
+        position: relative;
+        background: var(--surface2);
+        border: 2px solid rgba(91, 127, 255, 0.2);
+        border-radius: 24px;
+        overflow: hidden;
+        aspect-ratio: 1;
+    }
+
+    .pd-main-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        opacity: 1;
+        transition: transform 0.4s ease;
+    }
+
+    .pd-main-image:hover img {
+        transform: scale(1.05);
+    }
+
+    .pd-image-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: linear-gradient(135deg, var(--surface2), #1a2540);
+    }
+
+    .pd-image-placeholder span {
+        font-size: 5rem;
+    }
+
+    .pd-image-placeholder p {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--muted);
+    }
+
+    .pd-sale-badge {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: linear-gradient(135deg, var(--warning), #f97316);
+        color: white;
+        font-size: 0.8rem;
+        font-weight: 800;
+        padding: 8px 16px;
+        border-radius: 50px;
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.4);
+        z-index: 2;
+    }
+
+    .pd-stock-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(7, 8, 15, 0.85);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 3;
+    }
+
+    .stock-out-badge {
+        background: var(--surface2);
+        border: 2px solid rgba(244, 114, 182, 0.4);
+        color: var(--danger);
+        font-size: 1.2rem;
+        font-weight: 800;
+        padding: 16px 32px;
+        border-radius: 16px;
+    }
+
+    .pd-thumbnails {
+        display: flex;
+        gap: 12px;
+        margin-top: 16px;
+        overflow-x: auto;
+        padding-bottom: 8px;
+    }
+
+    .pd-thumb {
+        width: 80px;
+        height: 80px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: border-color 0.2s, transform 0.2s;
+        flex-shrink: 0;
+    }
+
+    .pd-thumb:hover {
+        border-color: rgba(91, 127, 255, 0.5);
+        transform: scale(1.05);
+    }
+
+    .pd-thumb.active {
+        border-color: var(--primary);
+        box-shadow: 0 0 20px rgba(91, 127, 255, 0.3);
+    }
+
+    .pd-thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 1;
+    }
+
+    /* ─── Info Section ─── */
+    .pd-info-section {
+        animation: fadeLeft 0.6s ease both;
+    }
+
+    .pd-meta {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .featured-tag {
+        display: inline-block;
+        padding: 3px 12px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: var(--warning);
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .pd-title {
+        font-size: clamp(1.8rem, 3vw, 2.4rem);
+        font-weight: 900;
+        color: var(--white);
+        margin-bottom: 16px;
+        line-height: 1.3;
+    }
+
+    .pd-rating {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .stars {
+        display: flex;
+        gap: 2px;
+    }
+
+    .star {
+        color: rgba(245, 158, 11, 0.3);
+        font-size: 1.1rem;
+    }
+
+    .star.filled {
+        color: #f59e0b;
+        text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+    }
+
+    .rating-text {
+        font-size: 0.85rem;
+        color: var(--muted);
+    }
+
+    .pd-price-box {
+        background: rgba(91, 127, 255, 0.08);
+        border: 1px solid rgba(91, 127, 255, 0.2);
+        border-radius: 16px;
+        padding: 20px 24px;
+        margin-bottom: 24px;
+    }
+
+    .pd-price-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .pd-price-old {
+        font-size: 1.2rem;
+        color: var(--muted);
+        text-decoration: line-through;
+    }
+
+    .pd-price-current {
+        font-size: 2.4rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--neon-green), var(--neon-blue));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .pd-save-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--warning), #f97316);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 20px;
+    }
+
+    .pd-stock-status {
+        margin-bottom: 24px;
+    }
+
+    .stock-in {
+        display: inline-block;
+        background: rgba(0, 255, 135, 0.1);
+        border: 1px solid rgba(0, 255, 135, 0.3);
+        color: var(--neon-green);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 8px 16px;
+        border-radius: 10px;
+    }
+
+    .stock-low {
+        display: inline-block;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: var(--warning);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 8px 16px;
+        border-radius: 10px;
+    }
+
+    .stock-out {
+        display: inline-block;
+        background: rgba(244, 114, 182, 0.1);
+        border: 1px solid rgba(244, 114, 182, 0.3);
+        color: var(--danger);
+        font-size: 0.85rem;
+        font-weight: 700;
+        padding: 8px 16px;
+        border-radius: 10px;
+    }
+
+    .pd-description,
+    .pd-features {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+
+    .pd-description h3,
+    .pd-features h3 {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--white);
+        margin-bottom: 12px;
+    }
+
+    .pd-description p {
+        color: var(--muted);
+        line-height: 1.8;
+    }
+
+    .pd-features ul {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .pd-features li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text);
+        font-size: 0.9rem;
+    }
+
+    .feat-icon {
+        font-size: 1.1rem;
+        width: 32px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .pd-actions {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 32px;
+        flex-wrap: wrap;
+    }
+
+    .btn-add-cart,
+    .btn-added,
+    .btn-whatsapp,
+    .btn-stock-out,
+    .btn-notify {
+        flex: 1;
+        min-width: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-add-cart {
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        color: white;
+        box-shadow: 0 4px 20px rgba(91, 127, 255, 0.4);
+    }
+
+    .btn-add-cart:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(91, 127, 255, 0.6);
+    }
+
+    .btn-added {
+        background: rgba(0, 229, 176, 0.15);
+        border: 2px solid rgba(0, 229, 176, 0.4);
+        color: var(--neon-green);
+        cursor: default;
+    }
+
+    .btn-whatsapp {
+        background: #25d366;
+        color: white;
+        box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+    }
+
+    .btn-whatsapp:hover {
+        background: #1da855;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(37, 211, 102, 0.5);
+        color: white;
+    }
+
+    .btn-stock-out {
+        background: rgba(244, 114, 182, 0.1);
+        border: 2px solid rgba(244, 114, 182, 0.3);
+        color: var(--danger);
+        cursor: not-allowed;
+    }
+
+    .btn-notify {
+        background: rgba(91, 127, 255, 0.1);
+        border: 2px solid rgba(91, 127, 255, 0.3);
+        color: var(--primary);
+    }
+
+    .btn-notify:hover {
+        background: rgba(91, 127, 255, 0.2);
+        transform: translateY(-2px);
+        color: var(--primary);
+    }
+
+    .pd-delivery-info {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .delivery-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .delivery-icon {
+        font-size: 1.8rem;
+        width: 48px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .delivery-row strong {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: var(--white);
+        margin-bottom: 2px;
+    }
+
+    .delivery-row p {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    /* ─── Reviews Section ─── */
+    .pd-reviews-section {
+        margin-bottom: 80px;
+    }
+
+    .reviews-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+
+    .reviews-header h2 {
+        font-size: 1.6rem;
+        font-weight: 900;
+        color: var(--white);
+    }
+
+    .review-summary {
+        text-align: center;
+    }
+
+    .avg-rating {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .big-rating {
+        font-size: 3rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-green));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .stars-lg {
+        display: flex;
+        gap: 4px;
+    }
+
+    .stars-lg .star {
+        font-size: 1.4rem;
+    }
+
+    .avg-rating p {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .review-form-card {
+        background: var(--card-bg);
+        border: 2px solid rgba(91, 127, 255, 0.2);
+        border-radius: 20px;
+        padding: 32px;
+        margin-bottom: 48px;
+        backdrop-filter: blur(10px);
+    }
+
+    .review-form-card h3 {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--white);
+        margin-bottom: 24px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--muted);
+    }
+
+    .form-input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 0.9rem;
+        padding: 12px 16px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-family: inherit;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.15);
+    }
+
+    .submit-review-btn {
+        width: 100%;
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        color: white;
+        font-weight: 700;
+        font-size: 0.95rem;
+        padding: 14px;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-top: 8px;
+    }
+
+    .submit-review-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(91, 127, 255, 0.4);
+    }
+
+    .reviews-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .review-card {
+        background: var(--card-bg);
+        border: 1px solid rgba(91, 127, 255, 0.15);
+        border-radius: 16px;
+        padding: 24px;
+        backdrop-filter: blur(10px);
+        transition: border-color 0.2s;
+    }
+
+    .review-card:hover {
+        border-color: rgba(91, 127, 255, 0.3);
+    }
+
+    .review-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .reviewer-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .reviewer-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        display: grid;
+        place-items: center;
+        font-size: 0.9rem;
+        font-weight: 800;
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 0 20px rgba(91, 127, 255, 0.4);
+    }
+
+    .reviewer-info strong {
+        display: block;
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--white);
+    }
+
+    .review-date {
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+
+    .review-stars {
+        display: flex;
+        gap: 2px;
+    }
+
+    .review-text {
+        color: #b0bbd6;
+        line-height: 1.7;
+        font-size: 0.9rem;
+    }
+
+    .no-reviews {
+        text-align: center;
+        padding: 60px;
+        color: var(--muted);
+    }
+
+    .no-review-icon {
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    /* ─── Related Section ─── */
+    .related-section {
+        padding-top: 40px;
+        border-top: 1px solid var(--border-glow);
+    }
+
+    .related-section .section-head {
+        text-align: center;
+        margin-bottom: 48px;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 900px) {
+        .pd-grid {
+            grid-template-columns: 1fr;
+            gap: 48px;
+        }
+
+        .pd-image-section {
+            position: static;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .pd-actions {
+            flex-direction: column;
+        }
+
+        .btn-add-cart,
+        .btn-added,
+        .btn-whatsapp,
+        .btn-stock-out,
+        .btn-notify {
+            min-width: 100%;
+        }
+
+        .reviews-header {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .pd-thumbnails {
+            gap: 8px;
+        }
+
+        .pd-thumb {
+            width: 60px;
+            height: 60px;
+        }
+    }
+</style>
+
+
+<script>
+    // Thumbnail Image Change
+    function changeImage(src, thumb) {
+        document.getElementById('mainImage').src = src;
+        document.querySelectorAll('.pd-thumb').forEach(t => t.classList.remove('active'));
+        thumb.classList.add('active');
+    }
+
+    // Add to Cart AJAX
+    function addToCartDetail(productId) {
+        fetch(`/cart/add/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Update button
+                    const btn = document.querySelector('.btn-add-cart');
+                    btn.outerHTML = '<a href="/cart/" class="btn-added"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>কার্টে আছে</a>';
+
+                    // Update cart count if exists
+                    const cartBadge = document.querySelector('.cart-nav-badge');
+                    if (cartBadge) cartBadge.textContent = data.cart_count;
+
+                    // Optional: Show success message
+                    alert('✅ কার্টে যোগ হয়েছে!');
+                } else {
+                    alert('❌ ' + (data.error === 'out_of_stock' ? 'Stock শেষ!' : 'সমস্যা হয়েছে!'));
+                }
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                alert('❌ সমস্যা হয়েছে!');
+            });
+    }
+
+    // Image lazy load
+    document.querySelectorAll('img').forEach(img => {
+        if (img.complete) {
+            img.classList.add('loaded');
+        } else {
+            img.addEventListener('load', () => img.classList.add('loaded'));
+        }
+    });
+</script>
+
+{% endblock %}

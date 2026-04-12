@@ -54,7 +54,7 @@
                 <tr>
                     <td style="color:#6b7a99;">Delivery</td>
                     <td></td>
-                    <td style="color:#e8ecf4; text-align:right;">৳110</td>
+                    <td style="color:#e8ecf4; text-align:right;">৳{{ order.delivery_charge|floatformat:0 }}</td>
                 </tr>
                 {% if order.discount %}
                 <tr>

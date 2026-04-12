@@ -26,7 +26,7 @@
 
     <!-- ── Twitter Card ── -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block title %}SSC & HSC Practical Khata{% endblock %}">
+    <meta name="twitter:title" content="{% block twitter_title %}SSC & HSC Practical Khata{% endblock %}">
     <meta name="twitter:description" content="{{ site_settings.meta_description }}">
 
     <!-- ── Fonts ── -->
@@ -357,7 +357,6 @@
             wrap.className = `ai-msg ai-msg-${sender}`;
             const bubble = document.createElement('div');
             bubble.className = 'ai-msg-bubble';
-            bubble.textContent = text;
             const time = document.createElement('div');
             time.className = 'ai-msg-time';
             time.textContent = new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' });
@@ -365,6 +364,24 @@
             wrap.appendChild(time);
             chatMsgs.appendChild(wrap);
             chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+            // ✅ Typewriter effect — শুধু bot message এর জন্য
+            if (sender === 'bot') {
+                let i = 0;
+                bubble.textContent = '';
+                const speed = 25; // ms per character — কম = দ্রুত
+                function type() {
+                    if (i < text.length) {
+                        bubble.textContent += text.charAt(i);
+                        i++;
+                        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+                        setTimeout(type, speed);
+                    }
+                }
+                type();
+            } else {
+                bubble.textContent = text;
+            }
         }
 
         function showTyping() {

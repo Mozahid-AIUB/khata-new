@@ -1,0 +1,746 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Product — Admin{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════════════════════════════════════════
+     ➕ ADD PRODUCT FORM
+══════════════════════════════════════════════════════ -->
+<section class="add-product-section">
+    <div class="container" style="max-width: 900px;">
+
+        <!-- Header -->
+        <div class="ap-header">
+            <div>
+                <h1 class="ap-title">➕ নতুন Product যোগ করো</h1>
+                <p class="ap-subtitle">সব তথ্য সঠিকভাবে পূরণ করো</p>
+            </div>
+            <a href="{% url 'manage_products' %}" class="btn-back">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+                Products এ ফিরে যাও
+            </a>
+        </div>
+
+        <!-- Error Messages -->
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <span class="alert-icon">
+                    {% if message.tags == 'success' %}✅{% elif message.tags == 'error' %}❌{% else %}ℹ️{% endif %}
+                </span>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Form Card -->
+        <form method="POST" enctype="multipart/form-data" class="ap-form-card" id="productForm">
+            {% csrf_token %}
+
+            <!-- Basic Info Section -->
+            <div class="form-section">
+                <h3 class="section-title">📝 মূল তথ্য</h3>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="name" class="form-label">Product নাম *</label>
+                        <input type="text" id="name" name="name" required class="form-input"
+                            placeholder="উদাহরণ: Physics 1st Paper Practical Khata">
+                        <small class="form-hint">Product এর পূর্ণ নাম দাও</small>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="level" class="form-label">Level *</label>
+                        <select id="level" name="level" required class="form-input">
+                            <option value="">Select Level</option>
+                            <option value="SSC">SSC</option>
+                            <option value="HSC">HSC</option>
+                            <option value="BOTH">SSC & HSC</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category" class="form-label">Category *</label>
+                        <select id="category" name="category" required class="form-input">
+                            <option value="">Select Category</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description" class="form-label">বিবরণ *</label>
+                    <textarea id="description" name="description" required class="form-input" rows="5"
+                        placeholder="Product সম্পর্কে বিস্তারিত লেখো..."></textarea>
+                    <small class="form-hint">Product এর features ও বিশেষত্ব উল্লেখ করো</small>
+                </div>
+            </div>
+
+            <!-- Pricing Section -->
+            <div class="form-section">
+                <h3 class="section-title">💰 দাম ও Stock</h3>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price" class="form-label">নিয়মিত দাম (৳) *</label>
+                        <input type="number" id="price" name="price" required class="form-input" min="0" step="0.01"
+                            placeholder="290">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stock" class="form-label">Stock সংখ্যা *</label>
+                        <input type="number" id="stock" name="stock" required class="form-input" min="0"
+                            placeholder="50" value="10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Section -->
+            <div class="form-section">
+                <h3 class="section-title">📸 Product ছবি</h3>
+
+                <div class="form-group">
+                    <label for="image" class="form-label">Main Image *</label>
+                    <div class="image-upload-box" id="imageUploadBox">
+                        <input type="file" id="image" name="image" required accept="image/*" class="file-input"
+                            onchange="previewImage(event)">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                <circle cx="8.5" cy="8.5" r="1.5" />
+                                <polyline points="21 15 16 10 5 21" />
+                            </svg>
+                            <p>ছবি আপলোড করো</p>
+                            <small>Click করো বা drag & drop করো</small>
+                        </div>
+                        <div class="image-preview" id="imagePreview" style="display: none;">
+                            <img id="previewImg" src="" alt="Preview">
+                            <button type="button" class="remove-image" onclick="removeImage()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <small class="form-hint">JPG, PNG, WEBP — Max 5MB</small>
+                </div>
+            </div>
+
+            <!-- Features Section -->
+            <div class="form-section">
+                <h3 class="section-title">✨ অতিরিক্ত Options</h3>
+
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="featured" id="featured">
+                        <span class="checkbox-custom"></span>
+                        <div class="checkbox-text">
+                            <strong>⭐ Featured Product</strong>
+                            <small>Homepage এ দেখাবে</small>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+                <button type="reset" class="btn-reset">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10" />
+                        <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+                    </svg>
+                    Reset করো
+                </button>
+                <button type="submit" class="btn-submit">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Product যোগ করো
+                </button>
+            </div>
+
+        </form>
+
+        <!-- Help Card -->
+        <div class="help-card">
+            <div class="help-icon">💡</div>
+            <div>
+                <h4>Tips for Good Product Listing</h4>
+                <ul>
+                    <li>✅ Clear ও descriptive নাম ব্যবহার করো</li>
+                    <li>✅ High-quality ছবি আপলোড করো</li>
+                    <li>✅ বিবরণে features উল্লেখ করো</li>
+                    <li>✅ সঠিক Category ও Level নির্বাচন করো</li>
+                    <li>✅ Stock সংখ্যা আপডেট রাখো</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+
+<style>
+    /* ═══════════════════════════════════════════════════════
+   ➕ ADD PRODUCT STYLES
+   ═══════════════════════════════════════════════════════ */
+
+    .add-product-section {
+        padding: 60px 0 100px;
+        background: var(--bg);
+        min-height: 100vh;
+    }
+
+    /* ─── Header ─── */
+    .ap-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .ap-title {
+        font-size: 1.8rem;
+        font-weight: 900;
+        color: var(--white);
+        margin-bottom: 4px;
+    }
+
+    .ap-subtitle {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: background 0.2s, transform 0.2s;
+    }
+
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateX(-4px);
+        color: var(--white);
+    }
+
+    /* ─── Messages ─── */
+    .messages-container {
+        margin-bottom: 24px;
+    }
+
+    .alert {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .alert-icon {
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .alert-success {
+        background: rgba(0, 255, 135, 0.1);
+        border: 1px solid rgba(0, 255, 135, 0.3);
+        color: var(--neon-green);
+    }
+
+    .alert-error {
+        background: rgba(244, 114, 182, 0.1);
+        border: 1px solid rgba(244, 114, 182, 0.3);
+        color: var(--danger);
+    }
+
+    .alert-info {
+        background: rgba(91, 127, 255, 0.1);
+        border: 1px solid rgba(91, 127, 255, 0.3);
+        color: var(--primary);
+    }
+
+    /* ─── Form Card ─── */
+    .ap-form-card {
+        background: var(--card-bg);
+        border: 2px solid rgba(91, 127, 255, 0.2);
+        border-radius: 24px;
+        padding: 40px;
+        margin-bottom: 32px;
+        backdrop-filter: blur(10px);
+    }
+
+    .form-section {
+        margin-bottom: 40px;
+        padding-bottom: 40px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .form-section:last-of-type {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--white);
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .form-input {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        color: var(--text);
+        font-size: 0.9rem;
+        padding: 12px 16px;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        font-family: inherit;
+        width: 100%;
+    }
+
+    .form-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(91, 127, 255, 0.15);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    .form-input::placeholder {
+        color: var(--muted);
+    }
+
+    textarea.form-input {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: -4px;
+    }
+
+    /* ─── Image Upload ─── */
+    .image-upload-box {
+        position: relative;
+        border: 2px dashed rgba(91, 127, 255, 0.3);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: border-color 0.2s;
+        background: rgba(91, 127, 255, 0.03);
+    }
+
+    .image-upload-box:hover {
+        border-color: rgba(91, 127, 255, 0.5);
+    }
+
+    .file-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        cursor: pointer;
+        z-index: 2;
+    }
+
+    .upload-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        text-align: center;
+        gap: 8px;
+    }
+
+    .upload-placeholder svg {
+        color: var(--primary);
+        margin-bottom: 8px;
+    }
+
+    .upload-placeholder p {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .upload-placeholder small {
+        font-size: 0.78rem;
+        color: var(--muted);
+    }
+
+    .image-preview {
+        position: relative;
+        padding: 16px;
+    }
+
+    .image-preview img {
+        width: 100%;
+        max-height: 300px;
+        object-fit: contain;
+        border-radius: 12px;
+        opacity: 1;
+    }
+
+    .remove-image {
+        position: absolute;
+        top: 24px;
+        right: 24px;
+        width: 32px;
+        height: 32px;
+        background: rgba(244, 114, 182, 0.9);
+        border: none;
+        border-radius: 50%;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s, background 0.2s;
+        z-index: 3;
+    }
+
+    .remove-image:hover {
+        transform: scale(1.1);
+        background: var(--danger);
+    }
+
+    /* ─── Checkbox ─── */
+    .checkbox-group {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .checkbox-label:hover {
+        border-color: rgba(91, 127, 255, 0.4);
+        background: rgba(91, 127, 255, 0.05);
+    }
+
+    .checkbox-label input[type="checkbox"] {
+        display: none;
+    }
+
+    .checkbox-custom {
+        width: 22px;
+        height: 22px;
+        border: 2px solid var(--border);
+        border-radius: 6px;
+        position: relative;
+        transition: background 0.2s, border-color 0.2s;
+        flex-shrink: 0;
+    }
+
+    .checkbox-label input[type="checkbox"]:checked+.checkbox-custom {
+        background: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .checkbox-label input[type="checkbox"]:checked+.checkbox-custom::after {
+        content: '✓';
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 900;
+    }
+
+    .checkbox-text {
+        flex: 1;
+    }
+
+    .checkbox-text strong {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--white);
+        margin-bottom: 2px;
+    }
+
+    .checkbox-text small {
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+
+    /* ─── Action Buttons ─── */
+    .form-actions {
+        display: flex;
+        gap: 16px;
+        margin-top: 32px;
+        padding-top: 32px;
+        border-top: 1px solid var(--border);
+    }
+
+    .btn-reset,
+    .btn-submit {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 0.95rem;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-reset {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid var(--border);
+        color: var(--muted);
+    }
+
+    .btn-reset:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text);
+        transform: translateY(-2px);
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, var(--primary), var(--primary2));
+        color: white;
+        box-shadow: 0 4px 20px rgba(91, 127, 255, 0.4);
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(91, 127, 255, 0.6);
+    }
+
+    /* ─── Help Card ─── */
+    .help-card {
+        background: rgba(91, 127, 255, 0.08);
+        border: 1px solid rgba(91, 127, 255, 0.2);
+        border-radius: 16px;
+        padding: 24px 28px;
+        display: flex;
+        gap: 20px;
+    }
+
+    .help-icon {
+        font-size: 2rem;
+        flex-shrink: 0;
+    }
+
+    .help-card h4 {
+        font-size: 0.95rem;
+        font-weight: 800;
+        color: var(--white);
+        margin-bottom: 12px;
+    }
+
+    .help-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .help-card li {
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.5;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+        .ap-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .btn-back {
+            order: -1;
+            align-self: flex-start;
+        }
+
+        .ap-form-card {
+            padding: 28px 24px;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .help-card {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+
+
+<script>
+    // Image Preview
+    function previewImage(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('imagePreview').style.display = 'block';
+                document.getElementById('previewImg').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Remove Image
+    function removeImage() {
+        document.getElementById('image').value = '';
+        document.getElementById('uploadPlaceholder').style.display = 'flex';
+        document.getElementById('imagePreview').style.display = 'none';
+        document.getElementById('previewImg').src = '';
+    }
+
+    // Form Validation
+    document.getElementById('productForm').addEventListener('submit', function (e) {
+        const name = document.getElementById('name').value.trim();
+        const level = document.getElementById('level').value;
+        const category = document.getElementById('category').value;
+        const description = document.getElementById('description').value.trim();
+        const price = document.getElementById('price').value;
+        const stock = document.getElementById('stock').value;
+        const image = document.getElementById('image').files[0];
+
+        if (!name || !level || !category || !description || !price || !stock || !image) {
+            e.preventDefault();
+            alert('❌ সব required field পূরণ করো!');
+            return false;
+        }
+
+        if (parseFloat(price) <= 0) {
+            e.preventDefault();
+            alert('❌ দাম ০ এর বেশি হতে হবে!');
+            return false;
+        }
+
+        if (parseInt(stock) < 0) {
+            e.preventDefault();
+            alert('❌ Stock সংখ্যা ০ বা তার বেশি হতে হবে!');
+            return false;
+        }
+
+        // Check image size (max 5MB)
+        if (image.size > 5 * 1024 * 1024) {
+            e.preventDefault();
+            alert('❌ ছবি সাইজ 5MB এর কম হতে হবে!');
+            return false;
+        }
+
+        return true;
+    });
+
+    // Drag & Drop
+    const uploadBox = document.getElementById('imageUploadBox');
+    const fileInput = document.getElementById('image');
+
+    uploadBox.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = 'var(--primary)';
+        uploadBox.style.background = 'rgba(91, 127, 255, 0.1)';
+    });
+
+    uploadBox.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = 'rgba(91, 127, 255, 0.3)';
+        uploadBox.style.background = 'rgba(91, 127, 255, 0.03)';
+    });
+
+    uploadBox.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadBox.style.borderColor = 'rgba(91, 127, 255, 0.3)';
+        uploadBox.style.background = 'rgba(91, 127, 255, 0.03)';
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            previewImage({ target: fileInput });
+        }
+    });
+</script>
+
+{% endblock %}

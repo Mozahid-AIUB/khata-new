@@ -1,33 +1,53 @@
 {% extends 'base.html' %}
-{% block title %}Order #{{ order.id }} Tracking{% endblock %}
-{% block content %}
-<section class="py-5">
-    <div class="container" style="max-width:700px;">
+{% block title %}Order #{{ order.order_id|default:order.id }} Tracking{% endblock %}
 
-        <div class="track-header">
-            <div class="track-order-id">Order #{{ order.id }}</div>
-            <h2 class="track-title">Delivery Tracking</h2>
-            <p class="track-sub">{{ order.customer_name }} • {{ order.phone }}</p>
+{% block content %}
+<section class="ot-section">
+    <div class="container" style="max-width:720px;">
+
+        <!-- ══ HEADER ══ -->
+        <div class="ot-header">
+            <div class="ot-order-chip">📦 ORDER #{{ order.order_id|default:order.id }}</div>
+            <h2 class="ot-title">Delivery Tracking</h2>
+            <p class="ot-sub">{{ order.customer_name }} &bull; {{ order.phone }}</p>
+
+            <!-- Estimated Delivery Date Badge -->
+            {% if order.estimated_delivery_date and order.status != 'delivered' and order.status != 'cancelled' %}
+            <div class="ot-eta-badge">
+                <span class="ot-eta-icon">📅</span>
+                <div>
+                    <div class="ot-eta-label">আনুমানিক ডেলিভারি</div>
+                    <div class="ot-eta-date">{{ order.estimated_delivery_date|date:"d M, Y (l)" }}</div>
+                </div>
+            </div>
+            {% elif order.status == 'delivered' %}
+            <div class="ot-eta-badge delivered">
+                <span class="ot-eta-icon">🎉</span>
+                <div>
+                    <div class="ot-eta-label">ডেলিভারি সম্পন্ন</div>
+                    <div class="ot-eta-date">{{ order.updated_at|date:"d M, Y" }}</div>
+                </div>
+            </div>
+            {% endif %}
         </div>
 
-        <!-- STATUS STEPPER -->
-        <div class="stepper-wrap">
+        <!-- ══ STATUS STEPPER ══ -->
+        <div class="ot-stepper" id="stepperWrap">
             {% for step in steps %}
             {% with label=step_labels|get_item:step %}
-            <div
-                class="stepper-item {% if forloop.counter0 <= current_idx %}active{% endif %} {% if forloop.counter0 == current_idx %}current{% endif %}">
-                <div class="stepper-dot">
-                    {% if forloop.counter0 < current_idx %} <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="3">
-                        <polyline points="20 6 9 17 4 12" /></svg>
-                        {% elif forloop.counter0 == current_idx %}
-                        <div class="stepper-pulse"></div>
-                        {% endif %}
+            <div class="ot-step {% if forloop.counter0 <= current_idx %}active{% endif %} {% if forloop.counter0 == current_idx %}current{% endif %}">
+                <div class="ot-dot">
+                    {% if forloop.counter0 < current_idx %}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    {% elif forloop.counter0 == current_idx %}
+                    <div class="ot-pulse"></div>
+                    {% endif %}
                 </div>
-                {% if not forloop.last %}<div
-                    class="stepper-line {% if forloop.counter0 < current_idx %}filled{% endif %}"></div>{% endif %}
-                <div class="stepper-label">
-                    <span class="stepper-icon">{{ label.0 }}</span>
+                {% if not forloop.last %}
+                <div class="ot-line {% if forloop.counter0 < current_idx %}filled{% endif %}"></div>
+                {% endif %}
+                <div class="ot-step-label">
+                    <span class="ot-step-icon">{{ label.0 }}</span>
                     <span>{{ label.1 }}</span>
                 </div>
             </div>
@@ -35,235 +55,340 @@
             {% endfor %}
         </div>
 
-        <!-- ORDER DETAILS -->
-        <div class="track-card">
-            <div class="track-card-title">অর্ডার বিবরণ</div>
-            <table style="width:100%; font-size:0.875rem;">
+        <!-- ══ STATUS MESSAGE ══ -->
+        <div class="ot-status-msg ot-status-{{ order.status }}">
+            {% if order.status == 'pending' %}
+            ⏳ তোমার অর্ডার পেয়েছি! শীঘ্রই confirm করা হবে।
+            {% elif order.status == 'confirmed' %}
+            ✅ অর্ডার confirmed! এখন তৈরির প্রস্তুতি নেওয়া হচ্ছে।
+            {% elif order.status == 'processing' %}
+            📝 তোমার practical khata তৈরি হচ্ছে — একটু অপেক্ষা করো!
+            {% elif order.status == 'dispatched' %}
+            🚚 পাঠানো হয়েছে! কুরিয়ারে আছে — আসছে তোমার কাছে।
+            {% elif order.status == 'delivered' %}
+            🎉 ডেলিভারি সম্পন্ন! পেয়েছো তো? ভালো লাগলে একটা review দিও।
+            {% elif order.status == 'cancelled' %}
+            ❌ অর্ডার বাতিল হয়েছে। কোনো প্রশ্ন থাকলে WhatsApp করো।
+            {% endif %}
+        </div>
+
+        <!-- ══ ORDER DETAILS ══ -->
+        <div class="ot-card">
+            <div class="ot-card-title">📋 অর্ডার বিবরণ</div>
+            <table class="ot-table">
+                <tbody>
                 {% for item in order.items.all %}
                 <tr>
-                    <td style="padding:6px 0; color:var(--color-text, #e8ecf4);">{{ item.product.name }}</td>
-                    <td style="padding:6px 0; color:#6b7a99; text-align:center;">×{{ item.quantity }}</td>
-                    <td style="padding:6px 0; color:#00e5b0; text-align:right; font-weight:700;">৳{{ item.price }}</td>
+                    <td class="ot-td-name">{{ item.product.name }}</td>
+                    <td class="ot-td-qty">×{{ item.quantity }}</td>
+                    <td class="ot-td-price">৳{{ item.price }}</td>
                 </tr>
                 {% endfor %}
+                <tr><td colspan="3"><div class="ot-divider"></div></td></tr>
                 <tr>
-                    <td colspan="3">
-                        <div style="height:1px;background:rgba(255,255,255,0.07);margin:8px 0;"></div>
-                    </td>
-                </tr>
-                <tr>
-                    <td style="color:#6b7a99;">Delivery</td>
-                    <td></td>
-                    <td style="color:#e8ecf4; text-align:right;">৳110</td>
+                    <td class="ot-td-label">Delivery</td><td></td>
+                    <td class="ot-td-val">৳{{ order.delivery_charge|floatformat:0 }}</td>
                 </tr>
                 {% if order.discount %}
                 <tr>
-                    <td style="color:#6b7a99;">Discount</td>
-                    <td></td>
-                    <td style="color:#f472b6; text-align:right;">−৳{{ order.discount }}</td>
+                    <td class="ot-td-label">Discount</td><td></td>
+                    <td class="ot-td-discount">−৳{{ order.discount }}</td>
                 </tr>
                 {% endif %}
                 <tr>
-                    <td style="font-weight:700; color:#e8ecf4; padding-top:8px;">মোট</td>
-                    <td></td>
-                    <td style="font-weight:800; font-size:1.1rem; color:#00e5b0; text-align:right; padding-top:8px;">৳{{
-                        order.final_amount|floatformat:0 }}</td>
+                    <td class="ot-td-total">মোট</td><td></td>
+                    <td class="ot-td-total-val">৳{{ order.final_amount|floatformat:0 }}</td>
                 </tr>
+                </tbody>
             </table>
+
+            <!-- Payment Info Row -->
+            <div class="ot-payment-row">
+                <span class="ot-pay-method">
+                    {% if order.payment_method == 'bkash' %}💜 bKash
+                    {% elif order.payment_method == 'nagad' %}🟠 Nagad
+                    {% elif order.payment_method == 'sslcommerz' %}💳 Card/Online
+                    {% else %}💵 Cash on Delivery{% endif %}
+                </span>
+                <span class="ot-pay-status {% if order.payment_status == 'paid' %}paid{% else %}unpaid{% endif %}">
+                    {% if order.payment_status == 'paid' %}✅ Paid{% else %}⏳ Unpaid{% endif %}
+                </span>
+            </div>
         </div>
 
         {% if order.tracking_note %}
-        <div class="track-note">
+        <div class="ot-note">
             <strong>📌 Note:</strong> {{ order.tracking_note }}
         </div>
         {% endif %}
 
-        <div style="text-align:center; margin-top:24px;">
-            <a href="https://wa.me/8801707591255?text=আমার Order %23{{ order.id }} এর update জানতে চাই" target="_blank"
-                class="btn btn-primary px-5">💬 WhatsApp এ জিজ্ঞেস করো</a>
-            <div style="margin-top:12px;">
-                <a href="{% url 'home' %}" style="font-size:0.8rem; color:#6b7a99;">← Home এ ফিরে যাও</a>
-            </div>
+        <!-- ══ ACTION BUTTONS ══ -->
+        <div class="ot-actions">
+            <!-- WhatsApp Status Inquiry -->
+            <a href="https://wa.me/{{ site_settings.whatsapp_number }}?text=আমার Order %23{{ order.order_id|default:order.id }} এর status জানতে চাই। Customer: {{ order.customer_name }}, Phone: {{ order.phone }}"
+               class="ot-btn ot-btn-wa" target="_blank" rel="noopener">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                WhatsApp এ জিজ্ঞেস করো
+            </a>
+
+            <!-- PDF Invoice Download -->
+            <a href="{% url 'order_invoice_pdf' order.id %}" class="ot-btn ot-btn-pdf" target="_blank">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                Invoice Download (PDF)
+            </a>
+        </div>
+
+        <div style="text-align:center; margin-top:8px;">
+            <a href="{% url 'home' %}" class="ot-home-link">← Home এ ফিরে যাও</a>
+        </div>
+
+        <!-- Auto-refresh indicator -->
+        <div class="ot-refresh-bar">
+            <div class="ot-refresh-ring" id="refreshRing"></div>
+            <span id="refreshText">৩০ সেকেন্ড পর auto-update হবে</span>
         </div>
 
     </div>
 </section>
 
+
 <style>
-    .track-header {
-        text-align: center;
-        margin-bottom: 32px;
+/* ═══════════════════════════════════════════════════════
+   📦 ORDER TRACKING — UPGRADED v2
+   ═══════════════════════════════════════════════════════ */
+
+.ot-section { padding: 80px 0 120px; min-height: 80vh; }
+
+/* ── Header ── */
+.ot-header { text-align: center; margin-bottom: 36px; }
+.ot-order-chip {
+    display: inline-block; font-size: .72rem; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--primary); background: rgba(91,127,255,.1);
+    border: 1px solid rgba(91,127,255,.25); border-radius: 20px;
+    padding: 5px 14px; margin-bottom: 10px;
+}
+.ot-title {
+    font-size: 1.7rem; font-weight: 900; color: var(--white); margin-bottom: 4px;
+}
+.ot-sub { font-size: .88rem; color: var(--muted); }
+
+/* ETA Badge */
+.ot-eta-badge {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: rgba(0,229,176,.08); border: 1px solid rgba(0,229,176,.25);
+    border-radius: 14px; padding: 12px 20px; margin-top: 16px;
+    animation: etaGlow 3s ease-in-out infinite;
+}
+.ot-eta-badge.delivered {
+    background: rgba(91,127,255,.08); border-color: rgba(91,127,255,.25);
+    animation: none;
+}
+@keyframes etaGlow {
+    0%,100% { box-shadow: 0 0 0 rgba(0,229,176,0); }
+    50%      { box-shadow: 0 0 20px rgba(0,229,176,.18); }
+}
+.ot-eta-icon { font-size: 1.6rem; }
+.ot-eta-label { font-size: .72rem; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+.ot-eta-date { font-size: .95rem; font-weight: 800; color: var(--accent); }
+.ot-eta-badge.delivered .ot-eta-date { color: var(--primary); }
+
+/* ── Stepper ── */
+.ot-stepper {
+    display: flex; align-items: flex-start; justify-content: center;
+    gap: 0; margin: 0 auto 28px; max-width: 620px; position: relative;
+}
+.ot-step {
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1; position: relative;
+}
+.ot-dot {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: rgba(255,255,255,.04); border: 2px solid rgba(255,255,255,.1);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); position: relative; z-index: 2;
+    transition: all .3s ease;
+}
+.ot-step.active .ot-dot  { background: rgba(91,127,255,.2); border-color: var(--primary); color: var(--primary); }
+.ot-step.current .ot-dot {
+    background: linear-gradient(135deg, var(--primary), var(--primary2));
+    border-color: var(--primary); color: white;
+    box-shadow: 0 0 24px rgba(91,127,255,.55);
+}
+.ot-pulse {
+    width: 10px; height: 10px; border-radius: 50%; background: white;
+    animation: dotPulse 1.5s ease-in-out infinite;
+}
+@keyframes dotPulse { 0%,100% { transform: scale(1); opacity:1; } 50% { transform: scale(1.5); opacity:.6; } }
+
+.ot-line {
+    position: absolute; top: 19px; left: 50%; width: 100%; height: 2px;
+    background: rgba(255,255,255,.08); z-index: 1;
+}
+.ot-line.filled { background: linear-gradient(90deg, var(--primary), var(--primary2)); }
+
+.ot-step-label {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; margin-top: 8px; text-align: center;
+}
+.ot-step-icon { font-size: .95rem; }
+.ot-step-label span:last-child { font-size: .7rem; color: var(--muted); line-height: 1.3; }
+.ot-step.active .ot-step-label  span { color: #8ba4ff; }
+.ot-step.current .ot-step-label span { color: var(--white); font-weight: 700; }
+
+/* ── Status Message ── */
+.ot-status-msg {
+    text-align: center; font-size: .9rem; font-weight: 700;
+    padding: 14px 20px; border-radius: 12px; margin-bottom: 24px;
+    border: 1px solid;
+}
+.ot-status-pending    { background:rgba(245,158,11,.08); border-color:rgba(245,158,11,.25); color:var(--warning); }
+.ot-status-confirmed  { background:rgba(0,229,176,.08);  border-color:rgba(0,229,176,.25);  color:var(--accent); }
+.ot-status-processing { background:rgba(91,127,255,.08); border-color:rgba(91,127,255,.25); color:var(--primary); }
+.ot-status-dispatched { background:rgba(99,102,241,.08); border-color:rgba(99,102,241,.3);  color:#a5b4fc; }
+.ot-status-delivered  { background:rgba(0,229,176,.1);   border-color:rgba(0,229,176,.4);   color:var(--accent); }
+.ot-status-cancelled  { background:rgba(244,114,182,.08);border-color:rgba(244,114,182,.25);color:var(--danger); }
+
+/* ── Card ── */
+.ot-card {
+    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+    border-radius: 16px; padding: 22px; margin-bottom: 16px;
+}
+.ot-card-title {
+    font-size: .78rem; font-weight: 800; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--primary); margin-bottom: 16px;
+}
+.ot-table { width: 100%; border-collapse: collapse; font-size: .87rem; }
+.ot-td-name { padding: 7px 0; color: var(--text); font-weight: 600; }
+.ot-td-qty  { padding: 7px 0; color: var(--muted); text-align: center; }
+.ot-td-price { padding: 7px 0; color: var(--accent); text-align: right; font-weight: 700; }
+.ot-td-label { color: var(--muted); font-size: .82rem; padding-top: 4px; }
+.ot-td-val   { color: var(--text); text-align: right; font-size: .82rem; padding-top: 4px; }
+.ot-td-discount { color: var(--danger); text-align: right; font-size: .82rem; }
+.ot-td-total { font-weight: 800; color: var(--white); padding-top: 10px; font-size: .95rem; }
+.ot-td-total-val { font-weight: 900; font-size: 1.15rem; color: var(--accent); text-align: right; padding-top: 10px; }
+.ot-divider { height: 1px; background: rgba(255,255,255,.07); margin: 8px 0; }
+
+.ot-payment-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.06);
+    font-size: .82rem;
+}
+.ot-pay-method { color: var(--muted); font-weight: 600; }
+.ot-pay-status { padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: .75rem; }
+.ot-pay-status.paid   { background: rgba(0,229,176,.12); color: var(--accent); border: 1px solid rgba(0,229,176,.3); }
+.ot-pay-status.unpaid { background: rgba(245,158,11,.1); color: var(--warning); border: 1px solid rgba(245,158,11,.3); }
+
+/* ── Note ── */
+.ot-note {
+    background: rgba(91,127,255,.07); border: 1px solid rgba(91,127,255,.2);
+    border-radius: 10px; padding: 12px 16px;
+    font-size: .86rem; color: #9aa5c4; margin-bottom: 16px;
+}
+
+/* ── Action Buttons ── */
+.ot-actions { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.ot-btn {
+    flex: 1; min-width: 200px; display: inline-flex; align-items: center;
+    justify-content: center; gap: 8px; padding: 14px 20px;
+    border-radius: 12px; font-weight: 700; font-size: .88rem;
+    text-decoration: none; transition: transform .2s, box-shadow .2s; cursor: pointer; border: none;
+}
+.ot-btn-wa {
+    background: #25d366; color: white;
+    box-shadow: 0 4px 16px rgba(37,211,102,.3);
+}
+.ot-btn-wa:hover { background: #1da855; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(37,211,102,.5); color: white; }
+.ot-btn-pdf {
+    background: rgba(91,127,255,.12); border: 1px solid rgba(91,127,255,.3);
+    color: var(--primary);
+}
+.ot-btn-pdf:hover { background: rgba(91,127,255,.22); transform: translateY(-2px); color: var(--primary); }
+.ot-home-link { font-size: .8rem; color: var(--muted); }
+.ot-home-link:hover { color: var(--primary); }
+
+/* ── Refresh Bar ── */
+.ot-refresh-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 8px; margin-top: 20px; font-size: .72rem; color: var(--muted);
+}
+.ot-refresh-ring {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid rgba(0,229,176,.2);
+    border-top-color: var(--accent);
+    animation: spinRing 1s linear infinite;
+}
+@keyframes spinRing { to { transform: rotate(360deg); } }
+
+/* ── Responsive ── */
+@media (max-width: 576px) {
+    .ot-stepper {
+        overflow-x: auto; padding-bottom: 8px;
+        justify-content: flex-start; scrollbar-width: none;
     }
-
-    .track-order-id {
-        font-size: 0.75rem;
-        font-weight: 700;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: #5b7fff;
-        margin-bottom: 6px;
-    }
-
-    .track-title {
-        font-size: 1.6rem !important;
-        font-weight: 800 !important;
-        color: #e8ecf4;
-        margin-bottom: 4px;
-    }
-
-    .track-sub {
-        font-size: 0.875rem !important;
-        color: #6b7a99;
-    }
-
-    /* Stepper */
-    .stepper-wrap {
-        display: flex;
-        align-items: flex-start;
-        justify-content: center;
-        gap: 0;
-        margin: 0 auto 32px;
-        max-width: 600px;
-        position: relative;
-    }
-
-    .stepper-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex: 1;
-        position: relative;
-    }
-
-    .stepper-dot {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6b7a99;
-        position: relative;
-        z-index: 2;
-        transition: all 0.3s ease;
-    }
-
-    .stepper-item.active .stepper-dot {
-        background: rgba(91, 127, 255, 0.2);
-        border-color: #5b7fff;
-        color: #5b7fff;
-    }
-
-    .stepper-item.current .stepper-dot {
-        background: linear-gradient(135deg, #5b7fff, #7c3aed);
-        border-color: #5b7fff;
-        color: white;
-        box-shadow: 0 0 20px rgba(91, 127, 255, 0.5);
-    }
-
-    .stepper-pulse {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: white;
-        animation: pulse 1.5s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-
-        0%,
-        100% {
-            transform: scale(1);
-            opacity: 1;
-        }
-
-        50% {
-            transform: scale(1.4);
-            opacity: 0.7;
-        }
-    }
-
-    .stepper-line {
-        position: absolute;
-        top: 18px;
-        left: 50%;
-        width: 100%;
-        height: 2px;
-        background: rgba(255, 255, 255, 0.08);
-        z-index: 1;
-    }
-
-    .stepper-line.filled {
-        background: linear-gradient(90deg, #5b7fff, #7c3aed);
-    }
-
-    .stepper-label {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        margin-top: 8px;
-        text-align: center;
-    }
-
-    .stepper-icon {
-        font-size: 1rem;
-    }
-
-    .stepper-label span:last-child {
-        font-size: 0.72rem !important;
-        color: #6b7a99;
-        line-height: 1.3;
-    }
-
-    .stepper-item.active .stepper-label span {
-        color: #8ba4ff;
-    }
-
-    .stepper-item.current .stepper-label span {
-        color: #e8ecf4;
-        font-weight: 600;
-    }
-
-    /* Track card */
-    .track-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.07);
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 16px;
-    }
-
-    .track-card-title {
-        font-size: 0.8rem !important;
-        font-weight: 700;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: #5b7fff;
-        margin-bottom: 14px;
-    }
-
-    .track-note {
-        background: rgba(91, 127, 255, 0.08);
-        border: 1px solid rgba(91, 127, 255, 0.2);
-        border-radius: 10px;
-        padding: 12px 16px;
-        font-size: 0.875rem !important;
-        color: #9aa5c4;
-        margin-bottom: 16px;
-    }
-
-    @media (max-width:576px) {
-        .stepper-label span:last-child {
-            font-size: 0.65rem !important;
-        }
-
-        .stepper-dot {
-            width: 28px;
-            height: 28px;
-        }
-    }
+    .ot-stepper::-webkit-scrollbar { display: none; }
+    .ot-step { min-width: 66px; flex: 0 0 auto; }
+    .ot-dot  { width: 30px; height: 30px; }
+    .ot-step-label span:last-child { font-size: .6rem; max-width: 58px; word-break: keep-all; }
+    .ot-actions { flex-direction: column; }
+    .ot-btn { min-width: 100%; }
+    .ot-eta-badge { flex-direction: column; gap: 6px; text-align: center; }
+}
 </style>
+
+
+<script>
+// ── Auto-refresh every 30s with visual countdown ring ──
+(function() {
+    const INTERVAL = 30;
+    let remaining = INTERVAL;
+    const textEl = document.getElementById('refreshText');
+    const ringEl = document.getElementById('refreshRing');
+
+    const timer = setInterval(() => {
+        remaining--;
+        if (textEl) {
+            textEl.textContent = remaining > 0
+                ? `${remaining} সেকেন্ড পর auto-update হবে`
+                : 'Update হচ্ছে...';
+        }
+        // Shrink the ring fill to show progress
+        if (ringEl) {
+            const progress = ((INTERVAL - remaining) / INTERVAL) * 360;
+            ringEl.style.background = `conic-gradient(var(--accent) ${progress}deg, transparent ${progress}deg)`;
+            ringEl.style.borderRadius = '50%';
+            ringEl.style.border = 'none';
+            ringEl.style.width = '14px';
+            ringEl.style.height = '14px';
+            ringEl.style.animation = 'none';
+        }
+        if (remaining <= 0) {
+            clearInterval(timer);
+            location.reload();
+        }
+    }, 1000);
+})();
+
+// ── WhatsApp status notification share ──
+// Generates a pre-filled WA message with current status info
+function shareStatusOnWhatsApp() {
+    const status = '{{ order.status }}';
+    const statusLabels = {
+        pending: 'অপেক্ষমান ⏳',
+        confirmed: 'Confirmed ✅',
+        processing: 'তৈরি হচ্ছে 📝',
+        dispatched: 'পাঠানো হয়েছে 🚚',
+        delivered: 'পৌঁছে গেছে 🎉',
+        cancelled: 'বাতিল ❌'
+    };
+    const label = statusLabels[status] || status;
+    const text = encodeURIComponent(
+        `আমার Practical Khata Order #{{ order.order_id|default:order.id }} এর Status: ${label}\n` +
+        `Customer: {{ order.customer_name }}\n` +
+        `Phone: {{ order.phone }}`
+    );
+    window.open(`https://wa.me/{{ site_settings.whatsapp_number }}?text=${text}`, '_blank');
+}
+</script>
+
 {% endblock %}

@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Payment Successful{% endblock %}
+
+{% block content %}
+<section class="payment-result-section">
+    <div class="container" style="max-width:600px;padding:60px 16px;">
+
+        <div class="payment-result-card success-card">
+            <!-- ── Animated checkmark ── -->
+            <div class="result-icon success-icon">
+                <svg class="checkmark" viewBox="0 0 52 52">
+                    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                </svg>
+            </div>
+
+            <h1 class="result-title">পেমেন্ট সফল! 🎉</h1>
+            <p class="result-subtitle">আপনার অর্ডার কনফার্ম হয়েছে।</p>
+
+            <div class="result-detail-box">
+                <div class="result-row">
+                    <span>অর্ডার নম্বর</span>
+                    <strong>{{ order.order_id }}</strong>
+                </div>
+                <div class="result-row">
+                    <span>পরিমাণ</span>
+                    <strong style="color:#00e5b0;">৳{{ amount|floatformat:0 }}</strong>
+                </div>
+                <div class="result-row">
+                    <span>পেমেন্ট স্ট্যাটাস</span>
+                    <span class="status-pill paid-pill">✅ Paid</span>
+                </div>
+                <div class="result-row">
+                    <span>Transaction ID</span>
+                    <code style="font-size:0.78rem;color:#8ba4ff;">{{ order.ssl_transaction_id }}</code>
+                </div>
+                <div class="result-row">
+                    <span>ডেলিভারি ঠিকানা</span>
+                    <span>{{ order.address }}</span>
+                </div>
+            </div>
+
+            <p class="result-note">
+                📦 আপনার খাতা ২-৩ কার্যদিবসের মধ্যে পৌঁছে যাবে।<br>
+                যেকোনো প্রশ্নে WhatsApp করুন।
+            </p>
+
+            <div class="result-actions">
+                <a href="{% url 'order_tracking' order.id %}" class="btn btn-primary">
+                    📍 অর্ডার ট্র্যাক করুন
+                </a>
+                <a href="{% url 'products' %}" class="btn btn-outline-secondary" style="border-color:rgba(255,255,255,0.15);color:#9aa5c4;">
+                    আরও কিনুন
+                </a>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<style>
+.payment-result-section {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,229,176,0.06) 0%, transparent 70%);
+}
+.payment-result-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    padding: 48px 36px;
+    text-align: center;
+    backdrop-filter: blur(12px);
+}
+.success-card { border-color: rgba(0,229,176,0.25); }
+
+/* ── Animated checkmark ── */
+.result-icon { margin-bottom: 24px; }
+.checkmark {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    display: block;
+    margin: 0 auto;
+}
+.checkmark-circle {
+    stroke: #00e5b0;
+    stroke-width: 2;
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    stroke-miterlimit: 10;
+    animation: stroke 0.6s cubic-bezier(0.65,0,0.45,1) forwards;
+}
+.checkmark-check {
+    stroke: #00e5b0;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 48;
+    stroke-dashoffset: 48;
+    animation: stroke 0.3s cubic-bezier(0.65,0,0.45,1) 0.6s forwards;
+}
+@keyframes stroke {
+    100% { stroke-dashoffset: 0; }
+}
+
+.result-title {
+    font-size: 1.8rem; font-weight: 900;
+    color: #e8ecf4; margin-bottom: 8px;
+}
+.result-subtitle { color: #6b7a99; margin-bottom: 28px; }
+
+.result-detail-box {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px 24px;
+    text-align: left;
+    margin-bottom: 24px;
+}
+.result-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 0.875rem;
+    gap: 12px;
+}
+.result-row:last-child { border-bottom: none; }
+.result-row span:first-child { color: #6b7a99; flex-shrink: 0; }
+.result-row strong, .result-row span:last-child { color: #e8ecf4; text-align: right; }
+
+.paid-pill {
+    background: rgba(0,229,176,0.12);
+    color: #00e5b0;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.result-note {
+    font-size: 0.82rem; color: #6b7a99; margin-bottom: 28px;
+    line-height: 1.7;
+}
+.result-actions {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+}
+</style>
+{% endblock %}
