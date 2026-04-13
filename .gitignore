@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
 
 # Django
 db.sqlite3
@@ -11,16 +12,29 @@ staticfiles/
 # Virtual environment
 venv/
 env/
+.venv/
+
+# Environment variables (NEVER push this!)
 .env
+.env.local
+.env.production
 
 # IDE / OS
 .vscode/
+.idea/
 *.lnk
 Thumbs.db
+.DS_Store
 
 # Claude Code
 .claude/
 
+# Git worktrees
+.git/worktrees/
+
 # Misc
 *.log
 Practical Khata - MOZAHID/
+
+# Vercel (local dev only)
+.vercel/

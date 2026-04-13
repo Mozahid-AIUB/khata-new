@@ -6,12 +6,11 @@
             "use": "@vercel/python"
         }
     ],
-    "functions": {
-        "api/index.py": {
-            "runtime": "python3.11"
-        }
-    },
     "routes": [
+        {
+            "src": "/static/(.*)",
+            "dest": "/static/$1"
+        },
         {
             "src": "/(.*)",
             "dest": "api/index.py"
